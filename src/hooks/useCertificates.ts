@@ -1,0 +1,213 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import type { Tables, TablesInsert, Json } from "@/integrations/supabase/types";
+
+export type Certificate = Tables<"certificates">;
+export type CertificateInsert = TablesInsert<"certificates">;
+
+export interface CreateCertificateInput {
+  serial_number: string;
+  product_name: string;
+  product_description?: string;
+  product_category?: string;
+  product_images?: string[];
+  metadata?: Record<string, unknown>;
+  current_owner_wallet?: string;
+}
+
+export function useCertificates() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const certificatesQuery = useQuery({
+    queryKey: ["certificates", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("certificates")
+        .select("*")
+        .eq("issuer_id", user!.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const createCertificate = useMutation({
+    mutationFn: async (input: CreateCertificateInput) => {
+      const qrData = JSON.stringify({
+        type: "COA",
+        serial: input.serial_number,
+        issuer: user!.id,
+        timestamp: Date.now(),
+      });
+
+      const insertData: CertificateInsert = {
+        serial_number: input.serial_number,
+        product_name: input.product_name,
+        product_description: input.product_description || null,
+        product_category: input.product_category || null,
+        product_images: input.product_images || [],
+        metadata: (input.metadata || {}) as Json,
+        current_owner_wallet: input.current_owner_wallet || null,
+        issuer_id: user!.id,
+        qr_code_data: qrData,
+      };
+
+      const { data, error } = await supabase
+        .from("certificates")
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["certificates", user?.id] });
+      toast({
+        title: "Certificate Created",
+        description: "Your certificate has been created successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const transferCertificate = useMutation({
+    mutationFn: async ({
+      certificateId,
+      toWallet,
+      fromWallet,
+    }: {
+      certificateId: string;
+      toWallet: string;
+      fromWallet: string;
+    }) => {
+      // Create transfer record
+      const { error: transferError } = await supabase
+        .from("certificate_transfers")
+        .insert({
+          certificate_id: certificateId,
+          from_wallet: fromWallet,
+          to_wallet: toWallet,
+        });
+
+      if (transferError) throw transferError;
+
+      // Update certificate owner
+      const { data, error } = await supabase
+        .from("certificates")
+        .update({
+          current_owner_wallet: toWallet,
+          status: "transferred" as const,
+        })
+        .eq("id", certificateId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["certificates", user?.id] });
+      toast({
+        title: "Certificate Transferred",
+        description: "Ownership has been transferred successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Transfer Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  return {
+    certificates: certificatesQuery.data || [],
+    isLoading: certificatesQuery.isLoading,
+    error: certificatesQuery.error,
+    createCertificate,
+    transferCertificate,
+    refetch: certificatesQuery.refetch,
+  };
+}
+
+export function useCertificateSearch() {
+  const searchCertificate = async (query: string) => {
+    const { data, error } = await supabase
+      .from("certificates")
+      .select(`
+        *,
+        profiles:issuer_id (display_name, company_name)
+      `)
+      .or(`serial_number.ilike.%${query}%,product_name.ilike.%${query}%`)
+      .eq("status", "active")
+      .limit(20);
+
+    if (error) throw error;
+    return data;
+  };
+
+  const getCertificateBySerial = async (serialNumber: string) => {
+    const { data, error } = await supabase
+      .from("certificates")
+      .select(`
+        *,
+        profiles:issuer_id (display_name, company_name)
+      `)
+      .eq("serial_number", serialNumber)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  };
+
+  const getCertificateById = async (id: string) => {
+    const { data, error } = await supabase
+      .from("certificates")
+      .select(`
+        *,
+        profiles:issuer_id (display_name, company_name)
+      `)
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  };
+
+  return {
+    searchCertificate,
+    getCertificateBySerial,
+    getCertificateById,
+  };
+}
+
+export function useCertificateHistory(certificateId: string) {
+  return useQuery({
+    queryKey: ["certificate-history", certificateId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("certificate_transfers")
+        .select("*")
+        .eq("certificate_id", certificateId)
+        .order("transferred_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!certificateId,
+  });
+}

@@ -1,0 +1,9 @@
+{
+  "appId": "app.lovable.c2bfb26c8b9a4ca0a5fce041ed4c9702",
+  "appName": "AuthentiSeal",
+  "webDir": "dist",
+  "server": {
+    "url": "https://c2bfb26c-8b9a-4ca0-a5fc-e041ed4c9702.lovableproject.com?forceHideBadge=true",
+    "cleartext": true
+  }
+}
