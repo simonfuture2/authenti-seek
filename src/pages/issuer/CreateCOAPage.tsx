@@ -15,6 +15,8 @@ import {
   CheckCircle2,
   Copy,
   Download,
+  ExternalLink,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,9 +38,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { IssuerDashboardLayout } from "@/components/layout/IssuerDashboardLayout";
 import { useCertificates, Certificate } from "@/hooks/useCertificates";
+import { useSolanaTransaction } from "@/hooks/useSolanaTransaction";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const createCertificateSchema = z.object({
   serial_number: z.string().min(3, "Serial number must be at least 3 characters").max(50),
@@ -64,8 +70,12 @@ const categories = [
 
 export function CreateCOAPage() {
   const [createdCert, setCreatedCert] = useState<Certificate | null>(null);
+  const [storeOnChain, setStoreOnChain] = useState(true);
+  const [onChainSignature, setOnChainSignature] = useState<string | null>(null);
   const { createCertificate } = useCertificates();
-  const { publicKey } = useWallet();
+  const { publicKey, connected } = useWallet();
+  const { submitCertificate, isSubmitting, getExplorerUrl } = useSolanaTransaction();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const form = useForm<CreateCertificateForm>({
@@ -79,6 +89,7 @@ export function CreateCOAPage() {
   });
 
   const onSubmit = async (data: CreateCertificateForm) => {
+    // Create certificate in database first
     const result = await createCertificate.mutateAsync({
       serial_number: data.serial_number,
       product_name: data.product_name,
@@ -86,6 +97,29 @@ export function CreateCOAPage() {
       product_category: data.product_category,
       current_owner_wallet: publicKey?.toBase58() || undefined,
     });
+
+    // If user wants to store on-chain and wallet is connected
+    if (storeOnChain && connected && publicKey) {
+      const timestamp = Date.now();
+      const onChainResult = await submitCertificate({
+        serialNumber: data.serial_number,
+        productName: data.product_name,
+        issuerId: user?.id || "",
+        timestamp,
+        metadataHash: result.id,
+      });
+
+      if (onChainResult) {
+        setOnChainSignature(onChainResult.signature);
+        
+        // Update certificate with Solana signature
+        await supabase
+          .from("certificates")
+          .update({ solana_signature: onChainResult.signature })
+          .eq("id", result.id);
+      }
+    }
+
     setCreatedCert(result);
   };
 
@@ -147,6 +181,42 @@ export function CreateCOAPage() {
               </p>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* On-Chain Status */}
+              {onChainSignature && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-4 rounded-lg bg-primary/10 border border-primary/20"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Link2 className="h-5 w-5 text-primary" />
+                    <span className="font-semibold text-primary">Stored On-Chain</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    This certificate is permanently recorded on the Solana blockchain.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-xs font-mono bg-muted/50 px-2 py-1 rounded truncate">
+                      {onChainSignature}
+                    </code>
+                    <button
+                      onClick={() => copyToClipboard(onChainSignature)}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                    <a
+                      href={getExplorerUrl(onChainSignature)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:text-primary/80"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  </div>
+                </motion.div>
+              )}
+
               {/* QR Code */}
               <div className="flex flex-col items-center gap-4 p-6 bg-white rounded-xl">
                 <QRCodeSVG
@@ -208,7 +278,10 @@ export function CreateCOAPage() {
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={() => setCreatedCert(null)}
+                  onClick={() => {
+                    setCreatedCert(null);
+                    setOnChainSignature(null);
+                  }}
                 >
                   Create Another
                 </Button>
@@ -345,6 +418,32 @@ export function CreateCOAPage() {
                     )}
                   />
 
+                  {/* On-Chain Storage Toggle */}
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-border">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Link2 className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Store On-Chain</p>
+                        <p className="text-xs text-muted-foreground">
+                          Permanently record on Solana blockchain
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={storeOnChain}
+                      onCheckedChange={setStoreOnChain}
+                      disabled={!connected}
+                    />
+                  </div>
+
+                  {storeOnChain && !connected && (
+                    <p className="text-sm text-warning">
+                      ⚠️ Connect your wallet to store on-chain
+                    </p>
+                  )}
+
                   {publicKey && (
                     <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
                       <Wallet className="h-5 w-5 text-primary" />
@@ -360,15 +459,18 @@ export function CreateCOAPage() {
                   <Button
                     type="submit"
                     className="w-full bg-solana-gradient hover:opacity-90"
-                    disabled={createCertificate.isPending}
+                    disabled={createCertificate.isPending || isSubmitting}
                   >
-                    {createCertificate.isPending ? (
+                    {createCertificate.isPending || isSubmitting ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Creating...
+                        {isSubmitting ? "Storing On-Chain..." : "Creating..."}
                       </>
                     ) : (
-                      "Create Certificate"
+                      <>
+                        Create Certificate
+                        {storeOnChain && connected && " + Store On-Chain"}
+                      </>
                     )}
                   </Button>
                 </form>
