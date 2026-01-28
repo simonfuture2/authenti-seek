@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletReadyState } from "@solana/wallet-adapter-base";
-import { Wallet, ExternalLink, ArrowLeft, Loader2 } from "lucide-react";
+import { Wallet, ExternalLink, ArrowLeft, Loader2, Smartphone } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import {
@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,11 +19,40 @@ interface CustomWalletModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Detect if running on a touch device (mobile/tablet)
+function isTouchDevice(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    "ontouchstart" in window ||
+    navigator.maxTouchPoints > 0 ||
+    // @ts-ignore - msMaxTouchPoints for older IE/Edge
+    navigator.msMaxTouchPoints > 0
+  );
+}
+
+// Get the current page URL for deep linking
+function getCurrentUrl(): string {
+  if (typeof window === "undefined") return "";
+  return encodeURIComponent(window.location.href);
+}
+
+// Deep link URLs for mobile wallet apps
+const WALLET_DEEP_LINKS: Record<string, (url: string) => string> = {
+  Phantom: (url) => `https://phantom.app/ul/browse/${url}?ref=${url}`,
+  Solflare: (url) => `https://solflare.com/ul/v1/browse/${url}?ref=${url}`,
+};
+
 export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps) {
   const { wallets, select, connect, connecting, connected, wallet } = useWallet();
   const [walletConnectUri, setWalletConnectUri] = useState<string | null>(null);
   const [showQRCode, setShowQRCode] = useState(false);
   const [selectedWalletName, setSelectedWalletName] = useState<string | null>(null);
+  const [isTouch, setIsTouch] = useState(false);
+
+  // Check for touch device on mount
+  useEffect(() => {
+    setIsTouch(isTouchDevice());
+  }, []);
 
   const [installedWallets, otherWallets] = useMemo(() => {
     const installed: typeof wallets = [];
@@ -76,7 +106,26 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
   }, [connected, open, onOpenChange]);
 
   const handleWalletClick = useCallback(
-    async (walletName: string) => {
+    async (walletName: string, readyState: WalletReadyState) => {
+      // On touch devices with uninstalled wallets, use deep links to open mobile app
+      if (
+        isTouch &&
+        readyState !== WalletReadyState.Installed &&
+        readyState !== WalletReadyState.Loadable &&
+        walletName !== "WalletConnect"
+      ) {
+        const deepLinkFn = WALLET_DEEP_LINKS[walletName];
+        if (deepLinkFn) {
+          const currentUrl = getCurrentUrl();
+          const deepLink = deepLinkFn(currentUrl);
+          toast.info(`Opening ${walletName} app...`, {
+            description: "If the app doesn't open, make sure it's installed on your device.",
+          });
+          window.location.href = deepLink;
+          return;
+        }
+      }
+
       setSelectedWalletName(walletName);
       select(walletName as any);
 
@@ -93,17 +142,26 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
           // Connection might fail if user cancels, that's okay
           toast.error("WalletConnect connection was cancelled or failed.");
         }
-      } else {
+      } else if (
+        readyState === WalletReadyState.Installed ||
+        readyState === WalletReadyState.Loadable
+      ) {
+        // Wallet is installed, try to connect directly
         try {
           await connect();
         } catch (error) {
           toast.error(`Failed to connect to ${walletName}. Make sure it is installed and unlocked.`);
         }
+      } else {
+        // Desktop with uninstalled wallet - open install page
+        toast.info(`${walletName} is not installed`, {
+          description: "Opening the download page...",
+        });
       }
 
       setSelectedWalletName(null);
     },
-    [select, connect]
+    [select, connect, isTouch]
   );
 
   const handleBack = useCallback(() => {
@@ -141,6 +199,9 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
             </div>
             {showQRCode ? "Scan QR Code" : "Connect Wallet"}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Connect your Solana wallet to interact with the application
+          </DialogDescription>
         </DialogHeader>
 
         {showQRCode ? (
@@ -170,6 +231,16 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
           </div>
         ) : (
           <>
+            {/* Mobile/tablet hint */}
+            {isTouch && installedWallets.length === 0 && (
+              <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20 mb-4">
+                <Smartphone className="h-5 w-5 text-primary shrink-0" />
+                <p className="text-sm text-foreground">
+                  Tap a wallet below to open it in the app. Make sure you have the wallet app installed.
+                </p>
+              </div>
+            )}
+
             <div className="space-y-4 py-4">
               {installedWallets.length > 0 && (
                 <div className="space-y-2">
@@ -186,13 +257,18 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
                           "bg-muted/50 border-border hover:bg-muted hover:border-primary/50",
                           "transition-all duration-200"
                         )}
-                        onClick={() => handleWalletClick(wallet.adapter.name)}
+                        onClick={() => handleWalletClick(wallet.adapter.name, wallet.readyState)}
+                        disabled={connecting && selectedWalletName === wallet.adapter.name}
                       >
-                        <img
-                          src={wallet.adapter.icon}
-                          alt={wallet.adapter.name}
-                          className="h-8 w-8 rounded-lg"
-                        />
+                        {connecting && selectedWalletName === wallet.adapter.name ? (
+                          <Loader2 className="h-8 w-8 animate-spin" />
+                        ) : (
+                          <img
+                            src={wallet.adapter.icon}
+                            alt={wallet.adapter.name}
+                            className="h-8 w-8 rounded-lg"
+                          />
+                        )}
                         <div className="flex flex-col items-start">
                           <span className="font-medium text-foreground">
                             {wallet.adapter.name}
@@ -212,7 +288,7 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
               {otherWallets.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground uppercase tracking-wider">
-                    More Options
+                    {isTouch ? "Mobile Wallets" : "More Options"}
                   </p>
                   <div className="space-y-2">
                     {otherWallets.map((wallet) => (
@@ -224,13 +300,18 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
                           "bg-muted/30 border-border/50 hover:bg-muted/50 hover:border-border",
                           "transition-all duration-200"
                         )}
-                        onClick={() => handleWalletClick(wallet.adapter.name)}
+                        onClick={() => handleWalletClick(wallet.adapter.name, wallet.readyState)}
+                        disabled={connecting && selectedWalletName === wallet.adapter.name}
                       >
-                        <img
-                          src={wallet.adapter.icon}
-                          alt={wallet.adapter.name}
-                          className="h-8 w-8 rounded-lg opacity-80"
-                        />
+                        {connecting && selectedWalletName === wallet.adapter.name ? (
+                          <Loader2 className="h-8 w-8 animate-spin" />
+                        ) : (
+                          <img
+                            src={wallet.adapter.icon}
+                            alt={wallet.adapter.name}
+                            className="h-8 w-8 rounded-lg opacity-80"
+                          />
+                        )}
                         <div className="flex flex-col items-start flex-1">
                           <span className="font-medium text-foreground/80">
                             {wallet.adapter.name}
@@ -238,11 +319,16 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
                           <span className="text-xs text-muted-foreground">
                             {wallet.adapter.name === "WalletConnect"
                               ? "Scan QR code"
+                              : isTouch
+                              ? "Open in app"
                               : "Not installed"}
                           </span>
                         </div>
-                        {wallet.adapter.name !== "WalletConnect" && (
+                        {wallet.adapter.name !== "WalletConnect" && !isTouch && (
                           <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        {wallet.adapter.name !== "WalletConnect" && isTouch && (
+                          <Smartphone className="h-4 w-4 text-muted-foreground" />
                         )}
                       </Button>
                     ))}
