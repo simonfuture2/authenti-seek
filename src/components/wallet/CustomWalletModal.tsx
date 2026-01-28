@@ -36,6 +36,14 @@ function getCurrentUrl(): string {
   return encodeURIComponent(window.location.href);
 }
 
+function hasInjectedProvider(walletName: string): boolean {
+  if (typeof window === "undefined") return false;
+  const w = window as any;
+  if (walletName === "Phantom") return !!w.solana?.isPhantom;
+  if (walletName === "Solflare") return !!w.solflare?.isSolflare || !!w.solana?.isSolflare;
+  return false;
+}
+
 // Deep link URLs for mobile wallet apps
 const WALLET_DEEP_LINKS: Record<string, (url: string) => string> = {
   Phantom: (url) => `https://phantom.app/ul/browse/${url}?ref=${url}`,
@@ -107,21 +115,19 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
 
   const handleWalletClick = useCallback(
     async (walletName: string, readyState: WalletReadyState) => {
-      // On touch devices with uninstalled wallets, use deep links to open mobile app
-      if (
-        isTouch &&
-        readyState !== WalletReadyState.Installed &&
-        readyState !== WalletReadyState.Loadable &&
-        walletName !== "WalletConnect"
-      ) {
+      // On touch devices, prefer opening the installed wallet app via universal link
+      // when there is no injected provider available in this browser.
+      if (isTouch && walletName !== "WalletConnect") {
         const deepLinkFn = WALLET_DEEP_LINKS[walletName];
-        if (deepLinkFn) {
+        const injected = hasInjectedProvider(walletName);
+        if (deepLinkFn && !injected) {
           const currentUrl = getCurrentUrl();
           const deepLink = deepLinkFn(currentUrl);
           toast.info(`Opening ${walletName} app...`, {
-            description: "If the app doesn't open, make sure it's installed on your device.",
+            description: "If it doesn't open, ensure the wallet app is installed and try again.",
           });
-          window.location.href = deepLink;
+          // Must be triggered by a user gesture (button click) for iOS to allow it.
+          window.location.assign(deepLink);
           return;
         }
       }
