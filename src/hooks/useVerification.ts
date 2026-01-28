@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import type { TablesInsert, Json } from "@/integrations/supabase/types";
+import { logError } from "@/lib/errorHandler";
 
 type VerificationLogInsert = TablesInsert<"verification_logs">;
 type FakeReportInsert = TablesInsert<"fake_reports">;
@@ -45,7 +46,7 @@ export function useVerification() {
       });
     },
     onError: (error: Error) => {
-      console.error("Verification log error:", error);
+      logError(error, "useVerification.logVerification");
     },
   });
 

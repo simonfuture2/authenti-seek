@@ -11,6 +11,7 @@ import {
   OnChainResult,
 } from "@/lib/solana";
 import { useToast } from "@/hooks/use-toast";
+import { logError } from "@/lib/errorHandler";
 
 export function useSolanaTransaction() {
   const wallet = useWallet();
@@ -54,10 +55,10 @@ export function useSolanaTransaction() {
 
         return result;
       } catch (error: any) {
-        console.error("Solana transaction error:", error);
+        logError(error, "useSolanaTransaction.submitCertificate");
         toast({
           title: "Transaction Failed",
-          description: error.message || "Failed to store on blockchain.",
+          description: "Failed to store on blockchain. Please try again.",
           variant: "destructive",
         });
         return null;
@@ -74,7 +75,7 @@ export function useSolanaTransaction() {
         const result = await verifyCertificateOnChain(signature, expectedHash);
         return result;
       } catch (error: any) {
-        console.error("Verification error:", error);
+        logError(error, "useSolanaTransaction.verifyCertificate");
         return { verified: false, onChainData: null, blockTime: null, slot: 0 };
       }
     },

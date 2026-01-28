@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Search, Package, CheckCircle2, XCircle, ExternalLink, Shield, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,8 @@ import { VerifierDashboardLayout } from "@/components/layout/VerifierDashboardLa
 import { useCertificateSearch, Certificate } from "@/hooks/useCertificates";
 import { useVerification } from "@/hooks/useVerification";
 import { useSolanaTransaction } from "@/hooks/useSolanaTransaction";
+import { logError } from "@/lib/errorHandler";
+import { toast } from "sonner";
 
 export function SearchPage() {
   const [query, setQuery] = useState("");
@@ -25,20 +27,40 @@ export function SearchPage() {
   const { searchCertificate } = useCertificateSearch();
   const { logVerification } = useVerification();
   const { verifyCertificate, getExplorerUrl } = useSolanaTransaction();
+  
+  // Rate limiting: track last search time
+  const lastSearchTime = useRef<number>(0);
+  const SEARCH_COOLDOWN_MS = 500; // 500ms between searches
 
-  const handleSearch = async () => {
-    if (!query.trim()) return;
+  const handleSearch = useCallback(async () => {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) return;
+    
+    // Input validation: limit search query length
+    if (trimmedQuery.length > 100) {
+      toast.error("Search query is too long (max 100 characters)");
+      return;
+    }
+    
+    // Rate limiting: prevent rapid searches
+    const now = Date.now();
+    if (now - lastSearchTime.current < SEARCH_COOLDOWN_MS) {
+      return; // Silently ignore rapid searches
+    }
+    lastSearchTime.current = now;
+    
     setSearching(true);
     setSelectedCert(null);
     setVerificationStatus(null);
     try {
-      const data = await searchCertificate(query);
+      const data = await searchCertificate(trimmedQuery);
       setResults(data || []);
     } catch (error) {
-      console.error(error);
+      logError(error, "SearchPage.handleSearch");
+      toast.error("Search failed. Please try again.");
     }
     setSearching(false);
-  };
+  }, [query, searchCertificate]);
 
   const handleVerify = async (cert: any) => {
     setSelectedCert(cert);
@@ -51,7 +73,7 @@ export function SearchPage() {
         method: "search",
       });
     } catch (e) {
-      console.error("Failed to log verification:", e);
+      logError(e, "SearchPage.handleVerify.logVerification");
     }
     
     // Verify on-chain if signature exists

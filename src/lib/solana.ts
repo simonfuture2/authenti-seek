@@ -175,8 +175,8 @@ export async function verifyCertificateOnChain(
       blockTime: tx.blockTime,
       slot: tx.slot,
     };
-  } catch (error) {
-    console.error("Error verifying on-chain:", error);
+  } catch {
+    // Error handled silently - verification failed
     return { verified: false, onChainData: null, blockTime: null, slot: 0 };
   }
 }
