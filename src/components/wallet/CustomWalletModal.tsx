@@ -3,6 +3,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletReadyState } from "@solana/wallet-adapter-base";
 import { Wallet, ExternalLink, ArrowLeft, Loader2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -76,24 +77,33 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
 
   const handleWalletClick = useCallback(
     async (walletName: string) => {
+      setSelectedWalletName(walletName);
       select(walletName as any);
+
+      // Let wallet-adapter apply the selection before attempting connect.
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
       
       // Check if this is WalletConnect
       if (walletName === "WalletConnect") {
-        setSelectedWalletName(walletName);
         setShowQRCode(true);
         // Trigger connect to get the URI
         try {
           await connect();
         } catch (error) {
           // Connection might fail if user cancels, that's okay
-          console.log("WalletConnect connection attempt:", error);
+          toast.error("WalletConnect connection was cancelled or failed.");
         }
       } else {
-        onOpenChange(false);
+        try {
+          await connect();
+        } catch (error) {
+          toast.error(`Failed to connect to ${walletName}. Make sure it is installed and unlocked.`);
+        }
       }
+
+      setSelectedWalletName(null);
     },
-    [select, connect, onOpenChange]
+    [select, connect]
   );
 
   const handleBack = useCallback(() => {
