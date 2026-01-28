@@ -17,6 +17,7 @@ import {
   Download,
   ExternalLink,
   Link2,
+  ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,8 @@ import { useSolanaTransaction } from "@/hooks/useSolanaTransaction";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ImageUpload } from "@/components/ui/image-upload";
+import { useImageUpload } from "@/hooks/useImageUpload";
 
 const createCertificateSchema = z.object({
   serial_number: z.string().min(3, "Serial number must be at least 3 characters").max(50),
@@ -72,11 +75,13 @@ export function CreateCOAPage() {
   const [createdCert, setCreatedCert] = useState<Certificate | null>(null);
   const [storeOnChain, setStoreOnChain] = useState(true);
   const [onChainSignature, setOnChainSignature] = useState<string | null>(null);
+  const [productImages, setProductImages] = useState<string[]>([]);
   const { createCertificate } = useCertificates();
   const { publicKey, connected } = useWallet();
   const { submitCertificate, isSubmitting, getExplorerUrl } = useSolanaTransaction();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { uploadImages, uploading, uploadProgress } = useImageUpload();
 
   const form = useForm<CreateCertificateForm>({
     resolver: zodResolver(createCertificateSchema),
@@ -88,6 +93,13 @@ export function CreateCOAPage() {
     },
   });
 
+  const handleFilesSelected = async (files: File[]) => {
+    const urls = await uploadImages(files);
+    if (urls.length > 0) {
+      setProductImages((prev) => [...prev, ...urls]);
+    }
+  };
+
   const onSubmit = async (data: CreateCertificateForm) => {
     // Create certificate in database first
     const result = await createCertificate.mutateAsync({
@@ -95,6 +107,7 @@ export function CreateCOAPage() {
       product_name: data.product_name,
       product_description: data.product_description,
       product_category: data.product_category,
+      product_images: productImages.length > 0 ? productImages : undefined,
       current_owner_wallet: publicKey?.toBase58() || undefined,
     });
 
@@ -274,6 +287,27 @@ export function CreateCOAPage() {
                 </div>
               </div>
 
+              {/* Product Images */}
+              {createdCert.product_images && createdCert.product_images.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Product Images</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {createdCert.product_images.map((url, index) => (
+                      <div
+                        key={index}
+                        className="aspect-square rounded-lg overflow-hidden border border-border"
+                      >
+                        <img
+                          src={url}
+                          alt={`Product ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <Button
                   variant="outline"
@@ -281,6 +315,7 @@ export function CreateCOAPage() {
                   onClick={() => {
                     setCreatedCert(null);
                     setOnChainSignature(null);
+                    setProductImages([]);
                   }}
                 >
                   Create Another
@@ -418,6 +453,22 @@ export function CreateCOAPage() {
                     )}
                   />
 
+                  {/* Product Images Upload */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                      <FormLabel>Product Images (Optional)</FormLabel>
+                    </div>
+                    <ImageUpload
+                      images={productImages}
+                      onImagesChange={setProductImages}
+                      onFilesSelected={handleFilesSelected}
+                      uploading={uploading}
+                      uploadProgress={uploadProgress}
+                      maxImages={5}
+                    />
+                  </div>
+
                   {/* On-Chain Storage Toggle */}
                   <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-border">
                     <div className="flex items-center gap-3">
@@ -459,7 +510,7 @@ export function CreateCOAPage() {
                   <Button
                     type="submit"
                     className="w-full bg-solana-gradient hover:opacity-90"
-                    disabled={createCertificate.isPending || isSubmitting}
+                    disabled={createCertificate.isPending || isSubmitting || uploading}
                   >
                     {createCertificate.isPending || isSubmitting ? (
                       <>
