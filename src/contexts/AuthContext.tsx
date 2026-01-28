@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { logError } from "@/lib/errorHandler";
 
 type UserRole = "issuer" | "verifier" | null;
 
@@ -30,7 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .maybeSingle();
 
     if (error) {
-      console.error("Error fetching user role:", error);
+      logError(error, "AuthContext.fetchUserRole");
       return null;
     }
 
@@ -112,7 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .eq("user_id", data.user.id);
 
         if (profileError) {
-          console.error("Profile update error:", profileError);
+          logError(profileError, "AuthContext.signUp.profileUpdate");
         }
 
         setRole(selectedRole);

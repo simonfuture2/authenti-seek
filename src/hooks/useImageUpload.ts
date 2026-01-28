@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { logError } from "@/lib/errorHandler";
 
 export function useImageUpload() {
   const [uploading, setUploading] = useState(false);
@@ -32,7 +33,7 @@ export function useImageUpload() {
           });
 
         if (uploadError) {
-          console.error("Upload error:", uploadError);
+          logError(uploadError, "useImageUpload.upload");
           toast.error(`Failed to upload ${file.name}`);
           continue;
         }
@@ -51,7 +52,7 @@ export function useImageUpload() {
 
       return uploadedUrls;
     } catch (error) {
-      console.error("Upload error:", error);
+      logError(error, "useImageUpload.uploadImages");
       toast.error("Failed to upload images");
       return [];
     } finally {
@@ -74,7 +75,7 @@ export function useImageUpload() {
         .remove([filePath]);
 
       if (error) {
-        console.error("Delete error:", error);
+        logError(error, "useImageUpload.deleteImage");
         toast.error("Failed to delete image");
         return false;
       }
@@ -82,7 +83,7 @@ export function useImageUpload() {
       toast.success("Image deleted");
       return true;
     } catch (error) {
-      console.error("Delete error:", error);
+      logError(error, "useImageUpload.deleteImage.catch");
       return false;
     }
   };
