@@ -2,7 +2,6 @@ import React from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import {
   Shield,
   PlusCircle,
@@ -18,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { cn } from "@/lib/utils";
+import { WalletButton } from "@/components/wallet/WalletButton";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -114,7 +114,7 @@ export function IssuerDashboardLayout({ children }: DashboardLayoutProps) {
 
         {/* Wallet connection */}
         <div className="p-4 border-t border-sidebar-border">
-          <WalletMultiButton className="!w-full !justify-center" />
+          <WalletButton />
           {connected && (
             <p className="text-xs text-center text-muted-foreground mt-2">
               Wallet connected

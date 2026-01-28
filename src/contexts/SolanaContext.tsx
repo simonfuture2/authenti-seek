@@ -64,7 +64,7 @@ export function SolanaProvider({ children }: SolanaProviderProps) {
 
   return (
     <ConnectionProvider endpoint={endpoint} config={config}>
-      <WalletProvider wallets={wallets} autoConnect>
+      <WalletProvider wallets={wallets} autoConnect={false}>
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
