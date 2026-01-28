@@ -1,6 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { Wallet, ChevronDown, LogOut, Copy, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,13 +10,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { CustomWalletModal } from "./CustomWalletModal";
 
 export function WalletButton() {
   const { publicKey, wallet, disconnect, connected, connecting } = useWallet();
-  const { setVisible } = useWalletModal();
+  const [modalOpen, setModalOpen] = useState(false);
 
   const handleConnect = () => {
-    setVisible(true);
+    setModalOpen(true);
   };
 
   const handleCopyAddress = () => {
@@ -69,7 +69,7 @@ export function WalletButton() {
             <ChevronDown className="h-4 w-4 ml-2" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuContent align="end" className="w-56 bg-popover border-border">
           <DropdownMenuItem onClick={handleCopyAddress}>
             <Copy className="h-4 w-4 mr-2" />
             Copy Address
@@ -96,13 +96,16 @@ export function WalletButton() {
   }
 
   return (
-    <Button
-      variant="outline"
-      className="w-full bg-solana-gradient text-white border-0 hover:opacity-90"
-      onClick={handleConnect}
-    >
-      <Wallet className="h-4 w-4 mr-2" />
-      Connect Wallet
-    </Button>
+    <>
+      <Button
+        variant="outline"
+        className="w-full bg-solana-gradient text-white border-0 hover:opacity-90"
+        onClick={handleConnect}
+      >
+        <Wallet className="h-4 w-4 mr-2" />
+        Connect Wallet
+      </Button>
+      <CustomWalletModal open={modalOpen} onOpenChange={setModalOpen} />
+    </>
   );
 }
