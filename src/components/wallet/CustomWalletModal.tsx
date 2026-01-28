@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletReadyState } from "@solana/wallet-adapter-base";
-import { Wallet, ExternalLink, ArrowLeft, Loader2, Smartphone } from "lucide-react";
+import { Wallet, ExternalLink, ArrowLeft, Loader2, Smartphone, QrCode, Copy, Check } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import {
@@ -12,6 +12,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 interface CustomWalletModalProps {
@@ -56,17 +57,25 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
   const [showQRCode, setShowQRCode] = useState(false);
   const [selectedWalletName, setSelectedWalletName] = useState<string | null>(null);
   const [isTouch, setIsTouch] = useState(false);
+  const [copiedUri, setCopiedUri] = useState(false);
 
   // Check for touch device on mount
   useEffect(() => {
     setIsTouch(isTouchDevice());
   }, []);
 
-  const [installedWallets, otherWallets] = useMemo(() => {
+  // Separate WalletConnect adapter from other wallets
+  const { walletConnectAdapter, installedWallets, otherWallets } = useMemo(() => {
     const installed: typeof wallets = [];
     const notInstalled: typeof wallets = [];
+    let wcAdapter: (typeof wallets)[0] | null = null;
 
     for (const wallet of wallets) {
+      if (wallet.adapter.name === "WalletConnect") {
+        wcAdapter = wallet;
+        continue;
+      }
+      
       if (
         wallet.readyState === WalletReadyState.Installed ||
         wallet.readyState === WalletReadyState.Loadable
@@ -77,7 +86,11 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
       }
     }
 
-    return [installed, notInstalled];
+    return { 
+      walletConnectAdapter: wcAdapter, 
+      installedWallets: installed, 
+      otherWallets: notInstalled 
+    };
   }, [wallets]);
 
   // Listen for WalletConnect URI
@@ -110,8 +123,36 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
       setShowQRCode(false);
       setWalletConnectUri(null);
       setSelectedWalletName(null);
+      setCopiedUri(false);
     }
   }, [connected, open, onOpenChange]);
+
+  const handleCopyUri = useCallback(() => {
+    if (walletConnectUri) {
+      navigator.clipboard.writeText(walletConnectUri);
+      setCopiedUri(true);
+      toast.success("Link copied to clipboard");
+      setTimeout(() => setCopiedUri(false), 2000);
+    }
+  }, [walletConnectUri]);
+
+  const handleWalletConnectClick = useCallback(async () => {
+    if (!walletConnectAdapter) return;
+    
+    setSelectedWalletName("WalletConnect");
+    select("WalletConnect" as any);
+    
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    
+    setShowQRCode(true);
+    try {
+      await connect();
+    } catch (error) {
+      // Connection might fail if user cancels, that's okay
+      toast.error("WalletConnect connection was cancelled or failed.");
+    }
+    setSelectedWalletName(null);
+  }, [walletConnectAdapter, select, connect]);
 
   const handleWalletClick = useCallback(
     async (walletName: string, readyState: WalletReadyState) => {
@@ -138,17 +179,7 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
       // Let wallet-adapter apply the selection before attempting connect.
       await new Promise<void>((resolve) => setTimeout(resolve, 0));
       
-      // Check if this is WalletConnect
-      if (walletName === "WalletConnect") {
-        setShowQRCode(true);
-        // Trigger connect to get the URI
-        try {
-          await connect();
-        } catch (error) {
-          // Connection might fail if user cancels, that's okay
-          toast.error("WalletConnect connection was cancelled or failed.");
-        }
-      } else if (
+      if (
         readyState === WalletReadyState.Installed ||
         readyState === WalletReadyState.Loadable
       ) {
@@ -174,6 +205,7 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
     setShowQRCode(false);
     setWalletConnectUri(null);
     setSelectedWalletName(null);
+    setCopiedUri(false);
   }, []);
 
   const handleClose = useCallback((isOpen: boolean) => {
@@ -181,6 +213,7 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
       setShowQRCode(false);
       setWalletConnectUri(null);
       setSelectedWalletName(null);
+      setCopiedUri(false);
     }
     onOpenChange(isOpen);
   }, [onOpenChange]);
@@ -211,19 +244,51 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
         </DialogHeader>
 
         {showQRCode ? (
-          <div className="flex flex-col items-center py-6 space-y-4">
+          <div className="flex flex-col items-center py-4 space-y-4">
             {walletConnectUri ? (
               <>
-                <div className="p-4 bg-white rounded-xl">
+                <div className="p-4 bg-white rounded-xl shadow-lg">
                   <QRCodeSVG
                     value={walletConnectUri}
-                    size={200}
+                    size={220}
                     level="M"
                     includeMargin={false}
                   />
                 </div>
-                <p className="text-sm text-muted-foreground text-center max-w-[280px]">
-                  Scan this QR code with your mobile wallet app to connect
+                
+                {/* Step-by-step instructions */}
+                <div className="w-full space-y-3 px-2">
+                  <p className="text-sm font-medium text-foreground">How to connect:</p>
+                  <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+                    <li>Open your wallet app (Phantom, Solflare, etc.)</li>
+                    <li>Tap the scan or WalletConnect button</li>
+                    <li>Scan this QR code</li>
+                  </ol>
+                </div>
+
+                {/* Copy Link Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyUri}
+                  className="gap-2"
+                >
+                  {copiedUri ? (
+                    <>
+                      <Check className="h-4 w-4 text-green-500" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />
+                      Copy Link
+                    </>
+                  )}
+                </Button>
+
+                {/* Wallet compatibility note */}
+                <p className="text-xs text-muted-foreground text-center">
+                  Works with: Phantom, Solflare & more
                 </p>
               </>
             ) : (
@@ -237,17 +302,65 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
           </div>
         ) : (
           <>
-            {/* Mobile/tablet hint */}
-            {isTouch && installedWallets.length === 0 && (
-              <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20 mb-4">
-                <Smartphone className="h-5 w-5 text-primary shrink-0" />
-                <p className="text-sm text-foreground">
-                  Tap a wallet below to open it in the app. Make sure you have the wallet app installed.
-                </p>
+            {/* WalletConnect Recommended Section for Touch Devices */}
+            {isTouch && walletConnectAdapter && (
+              <div className="mb-4">
+                <div className="relative p-[1px] rounded-xl bg-gradient-to-r from-[#9945FF] via-[#14F195] to-[#9945FF]">
+                  <div className="bg-card rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Smartphone className="h-4 w-4 text-primary" />
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Recommended for Mobile
+                        </span>
+                      </div>
+                      <Badge variant="secondary" className="text-xs bg-primary/20 text-primary border-0">
+                        Best Option
+                      </Badge>
+                    </div>
+                    
+                    <Button
+                      className={cn(
+                        "w-full justify-start gap-3 h-14 px-4",
+                        "bg-solana-gradient hover:opacity-90",
+                        "transition-all duration-200"
+                      )}
+                      onClick={handleWalletConnectClick}
+                      disabled={connecting && selectedWalletName === "WalletConnect"}
+                    >
+                      {connecting && selectedWalletName === "WalletConnect" ? (
+                        <Loader2 className="h-8 w-8 animate-spin text-white" />
+                      ) : (
+                        <div className="p-1.5 bg-white/20 rounded-lg">
+                          <QrCode className="h-5 w-5 text-white" />
+                        </div>
+                      )}
+                      <div className="flex flex-col items-start">
+                        <span className="font-semibold text-white">
+                          Use WalletConnect
+                        </span>
+                        <span className="text-xs text-white/80">
+                          Works with any Solana wallet app
+                        </span>
+                      </div>
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
 
-            <div className="space-y-4 py-4">
+            {/* Separator for touch devices */}
+            {isTouch && walletConnectAdapter && (otherWallets.length > 0 || installedWallets.length > 0) && (
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Or open directly
+                </span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+            )}
+
+            <div className="space-y-4 py-2">
               {installedWallets.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground uppercase tracking-wider">
@@ -323,21 +436,50 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
                             {wallet.adapter.name}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            {wallet.adapter.name === "WalletConnect"
-                              ? "Scan QR code"
-                              : isTouch
-                              ? "Open in app"
-                              : "Not installed"}
+                            {isTouch ? "Open in app" : "Not installed"}
                           </span>
                         </div>
-                        {wallet.adapter.name !== "WalletConnect" && !isTouch && (
+                        {!isTouch && (
                           <ExternalLink className="h-4 w-4 text-muted-foreground" />
                         )}
-                        {wallet.adapter.name !== "WalletConnect" && isTouch && (
+                        {isTouch && (
                           <Smartphone className="h-4 w-4 text-muted-foreground" />
                         )}
                       </Button>
                     ))}
+
+                    {/* Show WalletConnect in More Options on desktop */}
+                    {!isTouch && walletConnectAdapter && (
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start gap-3 h-14 px-4",
+                          "bg-muted/30 border-border/50 hover:bg-muted/50 hover:border-border",
+                          "transition-all duration-200"
+                        )}
+                        onClick={handleWalletConnectClick}
+                        disabled={connecting && selectedWalletName === "WalletConnect"}
+                      >
+                        {connecting && selectedWalletName === "WalletConnect" ? (
+                          <Loader2 className="h-8 w-8 animate-spin" />
+                        ) : (
+                          <img
+                            src={walletConnectAdapter.adapter.icon}
+                            alt="WalletConnect"
+                            className="h-8 w-8 rounded-lg opacity-80"
+                          />
+                        )}
+                        <div className="flex flex-col items-start flex-1">
+                          <span className="font-medium text-foreground/80">
+                            WalletConnect
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            Scan QR code
+                          </span>
+                        </div>
+                        <QrCode className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}
