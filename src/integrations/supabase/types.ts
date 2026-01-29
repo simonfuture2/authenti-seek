@@ -169,6 +169,87 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_packages: {
+        Row: {
+          created_at: string
+          credits: number
+          description: string | null
+          id: string
+          is_active: boolean
+          is_popular: boolean
+          name: string
+          package_type: Database["public"]["Enums"]["credit_package"]
+          price_sol: number | null
+          price_usd: number
+        }
+        Insert: {
+          created_at?: string
+          credits: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_popular?: boolean
+          name: string
+          package_type: Database["public"]["Enums"]["credit_package"]
+          price_sol?: number | null
+          price_usd: number
+        }
+        Update: {
+          created_at?: string
+          credits?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_popular?: boolean
+          name?: string
+          package_type?: Database["public"]["Enums"]["credit_package"]
+          price_sol?: number | null
+          price_usd?: number
+        }
+        Relationships: []
+      }
+      credit_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string | null
+          id: string
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          reference_id: string | null
+          solana_signature: string | null
+          stripe_payment_id: string | null
+          transaction_type: Database["public"]["Enums"]["credit_transaction_type"]
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          reference_id?: string | null
+          solana_signature?: string | null
+          stripe_payment_id?: string | null
+          transaction_type: Database["public"]["Enums"]["credit_transaction_type"]
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          reference_id?: string | null
+          solana_signature?: string | null
+          stripe_payment_id?: string | null
+          transaction_type?: Database["public"]["Enums"]["credit_transaction_type"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       fake_reports: {
         Row: {
           admin_notes: string | null
@@ -249,6 +330,36 @@ export type Database = {
           updated_at?: string
           user_id?: string
           wallet_address?: string | null
+        }
+        Relationships: []
+      }
+      user_credits: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          lifetime_purchased: number
+          lifetime_used: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          lifetime_purchased?: number
+          lifetime_used?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          lifetime_purchased?: number
+          lifetime_used?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -382,6 +493,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_credits: {
+        Args: {
+          p_amount: number
+          p_description?: string
+          p_payment_id?: string
+          p_payment_method: Database["public"]["Enums"]["payment_method"]
+          p_user_id: string
+        }
+        Returns: {
+          message: string
+          new_balance: number
+          success: boolean
+        }[]
+      }
+      deduct_credits: {
+        Args: {
+          p_amount: number
+          p_description?: string
+          p_reference_id?: string
+          p_transaction_type: Database["public"]["Enums"]["credit_transaction_type"]
+          p_user_id: string
+        }
+        Returns: {
+          message: string
+          new_balance: number
+          success: boolean
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -397,12 +536,20 @@ export type Database = {
     Enums: {
       app_role: "issuer" | "verifier"
       certificate_status: "active" | "transferred" | "revoked"
+      credit_package: "starter" | "pro" | "enterprise"
+      credit_transaction_type:
+        | "purchase"
+        | "certificate_creation"
+        | "verification"
+        | "refund"
+        | "bonus"
       metadata_change_type:
         | "created"
         | "updated"
         | "transferred"
         | "minted"
         | "revoked"
+      payment_method: "stripe" | "sol"
       report_status: "pending" | "reviewed" | "resolved" | "dismissed"
     }
     CompositeTypes: {
@@ -533,6 +680,14 @@ export const Constants = {
     Enums: {
       app_role: ["issuer", "verifier"],
       certificate_status: ["active", "transferred", "revoked"],
+      credit_package: ["starter", "pro", "enterprise"],
+      credit_transaction_type: [
+        "purchase",
+        "certificate_creation",
+        "verification",
+        "refund",
+        "bonus",
+      ],
       metadata_change_type: [
         "created",
         "updated",
@@ -540,6 +695,7 @@ export const Constants = {
         "minted",
         "revoked",
       ],
+      payment_method: ["stripe", "sol"],
       report_status: ["pending", "reviewed", "resolved", "dismissed"],
     },
   },
