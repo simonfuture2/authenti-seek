@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   User,
+  FileImage,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,6 +26,7 @@ interface DashboardLayoutProps {
 
 const issuerNavItems = [
   { icon: PlusCircle, label: "Create COA", path: "/issuer/create" },
+  { icon: FileImage, label: "My Certificates", path: "/issuer/certificates" },
   { icon: Send, label: "Transfer", path: "/issuer/transfer" },
   { icon: BarChart3, label: "Analytics", path: "/issuer/analytics" },
   { icon: Settings, label: "Settings", path: "/settings" },
