@@ -17,6 +17,8 @@ export interface CreateCertificateInput {
   current_owner_wallet?: string;
 }
 
+const CREDITS_PER_CERTIFICATE = 1;
+
 export function useCertificates() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -39,6 +41,38 @@ export function useCertificates() {
 
   const createCertificate = useMutation({
     mutationFn: async (input: CreateCertificateInput) => {
+      // First, check if user has enough credits
+      const { data: credits, error: creditsError } = await supabase
+        .from("user_credits")
+        .select("balance")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+
+      if (creditsError) throw new Error("Failed to check credit balance");
+      
+      const currentBalance = credits?.balance ?? 0;
+      if (currentBalance < CREDITS_PER_CERTIFICATE) {
+        throw new Error(`Insufficient credits. You need ${CREDITS_PER_CERTIFICATE} credit to create a certificate. Current balance: ${currentBalance}`);
+      }
+
+      // Deduct credits using the database function
+      const { data: deductResult, error: deductError } = await supabase
+        .rpc("deduct_credits", {
+          p_user_id: user!.id,
+          p_amount: CREDITS_PER_CERTIFICATE,
+          p_transaction_type: "certificate_creation",
+          p_description: `Certificate created: ${input.serial_number}`,
+          p_reference_id: input.serial_number,
+        });
+
+      if (deductError) throw new Error("Failed to deduct credits");
+      
+      const result = deductResult?.[0];
+      if (!result?.success) {
+        throw new Error(result?.message || "Failed to deduct credits");
+      }
+
+      // Now create the certificate
       const qrData = JSON.stringify({
         type: "COA",
         serial: input.serial_number,
@@ -69,9 +103,10 @@ export function useCertificates() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["certificates", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["user-credits", user?.id] });
       toast({
         title: "Certificate Created",
-        description: "Your certificate has been created successfully.",
+        description: "Your certificate has been created successfully. 1 credit deducted.",
       });
     },
     onError: (error: Error) => {
