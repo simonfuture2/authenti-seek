@@ -18,6 +18,10 @@ import {
   ExternalLink,
   Link2,
   ImageIcon,
+  Sparkles,
+  Wand2,
+  BarChart3,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,14 +44,24 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { IssuerDashboardLayout } from "@/components/layout/IssuerDashboardLayout";
 import { useCertificates, Certificate } from "@/hooks/useCertificates";
 import { useSolanaTransaction } from "@/hooks/useSolanaTransaction";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { useImageUpload } from "@/hooks/useImageUpload";
+import { useCertificateAI } from "@/hooks/useCertificateAI";
+
+// Certificate theming components
+import { ThemeSelector } from "@/components/certificate/ThemeSelector";
+import { SealSelector } from "@/components/certificate/SealSelector";
+import { CertificatePreview } from "@/components/certificate/CertificatePreview";
+import { CertificateTheme, SealStyle } from "@/components/certificate/CertificateThemes";
 
 const createCertificateSchema = z.object({
   serial_number: z.string().min(3, "Serial number must be at least 3 characters").max(50),
@@ -76,12 +90,31 @@ export function CreateCOAPage() {
   const [storeOnChain, setStoreOnChain] = useState(true);
   const [onChainSignature, setOnChainSignature] = useState<string | null>(null);
   const [productImages, setProductImages] = useState<string[]>([]);
+  const [certificateImageUrl, setCertificateImageUrl] = useState<string | null>(null);
+  
+  // Theme and seal selection
+  const [selectedTheme, setSelectedTheme] = useState<CertificateTheme>("luxury");
+  const [selectedSeal, setSelectedSeal] = useState<SealStyle>("gold");
+  
+  // AI features state
+  const [authenticityScore, setAuthenticityScore] = useState<{
+    score: number;
+    confidence: string;
+    factors: string[];
+  } | null>(null);
+
   const { createCertificate } = useCertificates();
   const { publicKey, connected } = useWallet();
   const { submitCertificate, isSubmitting, getExplorerUrl } = useSolanaTransaction();
   const { user } = useAuth();
+  const { profile } = useProfile();
   const { toast } = useToast();
   const { uploadImages, uploading, uploadProgress } = useImageUpload();
+  const {
+    isLoading: aiLoading, 
+    generateDescription, 
+    analyzeAuthenticity 
+  } = useCertificateAI();
 
   const form = useForm<CreateCertificateForm>({
     resolver: zodResolver(createCertificateSchema),
@@ -93,11 +126,48 @@ export function CreateCOAPage() {
     },
   });
 
+  const watchedProductName = form.watch("product_name");
+  const watchedSerialNumber = form.watch("serial_number");
+  const watchedCategory = form.watch("product_category");
+  const watchedDescription = form.watch("product_description");
+
   const handleFilesSelected = async (files: File[]) => {
     const urls = await uploadImages(files);
     if (urls.length > 0) {
       setProductImages((prev) => [...prev, ...urls]);
     }
+  };
+
+  const handleAIDescription = async () => {
+    const result = await generateDescription({
+      productName: watchedProductName,
+      productCategory: watchedCategory,
+      existingDescription: watchedDescription,
+      productImageUrl: productImages[0],
+    });
+    if (result) {
+      form.setValue("product_description", result);
+    }
+  };
+
+  const handleAIAnalysis = async () => {
+    const result = await analyzeAuthenticity({
+      productName: watchedProductName,
+      productCategory: watchedCategory,
+      serialNumber: watchedSerialNumber,
+      productImageUrl: productImages[0],
+    });
+    if (result) {
+      setAuthenticityScore({
+        score: result.score,
+        confidence: result.confidence,
+        factors: result.factors,
+      });
+    }
+  };
+
+  const handleCertificateImageGenerated = (dataUrl: string) => {
+    setCertificateImageUrl(dataUrl);
   };
 
   const onSubmit = async (data: CreateCertificateForm) => {
@@ -109,6 +179,12 @@ export function CreateCOAPage() {
       product_category: data.product_category,
       product_images: productImages.length > 0 ? productImages : undefined,
       current_owner_wallet: publicKey?.toBase58() || undefined,
+      metadata: {
+        theme: selectedTheme,
+        sealStyle: productImages.length === 0 ? selectedSeal : undefined,
+        certificateImageUrl: certificateImageUrl,
+        authenticityScore: authenticityScore,
+      },
     });
 
     // If user wants to store on-chain and wallet is connected
@@ -230,6 +306,17 @@ export function CreateCOAPage() {
                 </motion.div>
               )}
 
+              {/* Generated Certificate Image */}
+              {certificateImageUrl && (
+                <div className="rounded-xl overflow-hidden border border-border">
+                  <img
+                    src={certificateImageUrl}
+                    alt="Generated Certificate"
+                    className="w-full"
+                  />
+                </div>
+              )}
+
               {/* QR Code */}
               <div className="flex flex-col items-center gap-4 p-6 bg-white rounded-xl">
                 <QRCodeSVG
@@ -316,6 +403,9 @@ export function CreateCOAPage() {
                     setCreatedCert(null);
                     setOnChainSignature(null);
                     setProductImages([]);
+                    setCertificateImageUrl(null);
+                    setAuthenticityScore(null);
+                    form.reset();
                   }}
                 >
                   Create Another
@@ -333,201 +423,349 @@ export function CreateCOAPage() {
 
   return (
     <IssuerDashboardLayout>
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h1 className="text-3xl font-bold mb-2">Create Certificate</h1>
-          <p className="text-muted-foreground mb-8">
-            Issue a new Certificate of Authenticity for your product.
-          </p>
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Create Certificate</h1>
+              <p className="text-muted-foreground">
+                Issue a new Certificate of Authenticity for your product.
+              </p>
+            </div>
+            <Badge variant="outline" className="gap-1">
+              <Sparkles className="h-3 w-3" />
+              AI Enhanced
+            </Badge>
+          </div>
 
-          <Card className="glass-card">
-            <CardContent className="pt-6">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="serial_number"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Serial Number</FormLabel>
-                        <FormControl>
-                          <div className="flex gap-2">
-                            <div className="relative flex-1">
-                              <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Form Column */}
+            <Card className="glass-card">
+              <CardContent className="pt-6">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="serial_number"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Serial Number</FormLabel>
+                          <FormControl>
+                            <div className="flex gap-2">
+                              <div className="relative flex-1">
+                                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                  {...field}
+                                  placeholder="COA-XXXXX-XXXX"
+                                  className="pl-10"
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={generateSerialNumber}
+                              >
+                                Generate
+                              </Button>
+                            </div>
+                          </FormControl>
+                          <FormDescription>
+                            Unique identifier for this certificate
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="product_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Product Name</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Package className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                               <Input
                                 {...field}
-                                placeholder="COA-XXXXX-XXXX"
+                                placeholder="e.g., Limited Edition Watch"
                                 className="pl-10"
                               />
                             </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="product_category"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Category</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <div className="flex items-center gap-2">
+                                  <Tag className="h-4 w-4 text-muted-foreground" />
+                                  <SelectValue placeholder="Select a category" />
+                                </div>
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {categories.map((category) => (
+                                <SelectItem key={category} value={category}>
+                                  {category}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="product_description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center justify-between">
+                            <FormLabel>Description</FormLabel>
                             <Button
                               type="button"
-                              variant="outline"
-                              onClick={generateSerialNumber}
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleAIDescription}
+                              disabled={!watchedProductName || aiLoading}
+                              className="h-7 text-xs gap-1"
                             >
-                              Generate
+                              {aiLoading ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Wand2 className="h-3 w-3" />
+                              )}
+                              AI Write
                             </Button>
                           </div>
-                        </FormControl>
-                        <FormDescription>
-                          Unique identifier for this certificate
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="product_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Product Name</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Package className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              {...field}
-                              placeholder="e.g., Limited Edition Watch"
-                              className="pl-10"
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="product_category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
                           <FormControl>
-                            <SelectTrigger>
-                              <div className="flex items-center gap-2">
-                                <Tag className="h-4 w-4 text-muted-foreground" />
-                                <SelectValue placeholder="Select a category" />
-                              </div>
-                            </SelectTrigger>
+                            <div className="relative">
+                              <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                              <Textarea
+                                {...field}
+                                placeholder="Describe the product, its unique features, materials, etc."
+                                className="pl-10 min-h-[100px]"
+                              />
+                            </div>
                           </FormControl>
-                          <SelectContent>
-                            {categories.map((category) => (
-                              <SelectItem key={category} value={category}>
-                                {category}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                  <FormField
-                    control={form.control}
-                    name="product_description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description (Optional)</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                            <Textarea
-                              {...field}
-                              placeholder="Describe the product, its unique features, materials, etc."
-                              className="pl-10 min-h-[100px]"
-                            />
+                    {/* Certificate Theme Selection */}
+                    <ThemeSelector
+                      selectedTheme={selectedTheme}
+                      onThemeChange={setSelectedTheme}
+                      disabled={createCertificate.isPending}
+                    />
+
+                    {/* Product Images Upload */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                        <FormLabel>Product Images (Optional)</FormLabel>
+                      </div>
+                      <ImageUpload
+                        images={productImages}
+                        onImagesChange={setProductImages}
+                        onFilesSelected={handleFilesSelected}
+                        uploading={uploading}
+                        uploadProgress={uploadProgress}
+                        maxImages={5}
+                      />
+                    </div>
+
+                    {/* Seal Selection (only when no product image) */}
+                    <SealSelector
+                      selectedSeal={selectedSeal}
+                      onSealChange={setSelectedSeal}
+                      hasProductImage={productImages.length > 0}
+                      disabled={createCertificate.isPending}
+                    />
+
+                    {/* AI Authenticity Analysis */}
+                    {watchedProductName && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium">AI Authenticity Score</span>
                           </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleAIAnalysis}
+                            disabled={aiLoading}
+                            className="h-7 text-xs gap-1"
+                          >
+                            {aiLoading ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <BarChart3 className="h-3 w-3" />
+                            )}
+                            Analyze
+                          </Button>
+                        </div>
+                        
+                        {authenticityScore && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            className="p-4 rounded-lg bg-muted/50 border border-border space-y-3"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-2xl font-bold text-primary">
+                                {authenticityScore.score}%
+                              </span>
+                              <Badge
+                                variant={
+                                  authenticityScore.confidence === "high"
+                                    ? "default"
+                                    : authenticityScore.confidence === "medium"
+                                    ? "secondary"
+                                    : "outline"
+                                }
+                              >
+                                {authenticityScore.confidence} confidence
+                              </Badge>
+                            </div>
+                            <Progress value={authenticityScore.score} className="h-2" />
+                            <div className="flex flex-wrap gap-1">
+                              {authenticityScore.factors.slice(0, 3).map((factor, i) => (
+                                <Badge key={i} variant="outline" className="text-xs">
+                                  {factor}
+                                </Badge>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </div>
                     )}
+
+                    {/* On-Chain Storage Toggle */}
+                    <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-border">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <Link2 className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Store On-Chain</p>
+                          <p className="text-xs text-muted-foreground">
+                            Permanently record on Solana blockchain
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={storeOnChain}
+                        onCheckedChange={setStoreOnChain}
+                        disabled={!connected}
+                      />
+                    </div>
+
+                    {storeOnChain && !connected && (
+                      <p className="text-sm text-warning">
+                        ⚠️ Connect your wallet to store on-chain
+                      </p>
+                    )}
+
+                    {publicKey && (
+                      <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
+                        <Wallet className="h-5 w-5 text-primary" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">Connected Wallet</p>
+                          <p className="text-xs text-muted-foreground font-mono truncate">
+                            {publicKey.toBase58()}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    <Button
+                      type="submit"
+                      className="w-full bg-solana-gradient hover:opacity-90"
+                      disabled={createCertificate.isPending || isSubmitting || uploading}
+                    >
+                      {createCertificate.isPending || isSubmitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          {isSubmitting ? "Storing On-Chain..." : "Creating..."}
+                        </>
+                      ) : (
+                        <>
+                          Create Certificate
+                          {storeOnChain && connected && " + Store On-Chain"}
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+
+            {/* Preview Column */}
+            <div className="space-y-6">
+              <Card className="glass-card">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg">Live Preview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CertificatePreview
+                    theme={selectedTheme}
+                    sealStyle={selectedSeal}
+                    productImage={productImages[0]}
+                    productName={watchedProductName || "Product Name"}
+                    serialNumber={watchedSerialNumber || "COA-XXXXX"}
+                    category={watchedCategory}
+                    issuerName={profile?.company_name || profile?.display_name || undefined}
+                    onImageGenerated={handleCertificateImageGenerated}
                   />
+                </CardContent>
+              </Card>
 
-                  {/* Product Images Upload */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                      <FormLabel>Product Images (Optional)</FormLabel>
-                    </div>
-                    <ImageUpload
-                      images={productImages}
-                      onImagesChange={setProductImages}
-                      onFilesSelected={handleFilesSelected}
-                      uploading={uploading}
-                      uploadProgress={uploadProgress}
-                      maxImages={5}
-                    />
+              {/* AI Features Info */}
+              <Card className="glass-card border-primary/20">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">AI-Powered Features</h3>
                   </div>
-
-                  {/* On-Chain Storage Toggle */}
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-border">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <Link2 className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Store On-Chain</p>
-                        <p className="text-xs text-muted-foreground">
-                          Permanently record on Solana blockchain
-                        </p>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={storeOnChain}
-                      onCheckedChange={setStoreOnChain}
-                      disabled={!connected}
-                    />
-                  </div>
-
-                  {storeOnChain && !connected && (
-                    <p className="text-sm text-warning">
-                      ⚠️ Connect your wallet to store on-chain
-                    </p>
-                  )}
-
-                  {publicKey && (
-                    <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
-                      <Wallet className="h-5 w-5 text-primary" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">Connected Wallet</p>
-                        <p className="text-xs text-muted-foreground font-mono truncate">
-                          {publicKey.toBase58()}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    className="w-full bg-solana-gradient hover:opacity-90"
-                    disabled={createCertificate.isPending || isSubmitting || uploading}
-                  >
-                    {createCertificate.isPending || isSubmitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        {isSubmitting ? "Storing On-Chain..." : "Creating..."}
-                      </>
-                    ) : (
-                      <>
-                        Create Certificate
-                        {storeOnChain && connected && " + Store On-Chain"}
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-center gap-2">
+                      <Wand2 className="h-4 w-4 text-primary" />
+                      Auto-generate product descriptions
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4 text-primary" />
+                      Authenticity scoring & analysis
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4 text-primary" />
+                      Dynamic certificate generation
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </motion.div>
       </div>
     </IssuerDashboardLayout>
