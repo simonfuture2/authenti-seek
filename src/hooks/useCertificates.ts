@@ -146,46 +146,83 @@ export function useCertificates() {
 
 export function useCertificateSearch() {
   const searchCertificate = async (query: string) => {
-    const { data, error } = await supabase
+    // First get the certificates
+    const { data: certificates, error } = await supabase
       .from("certificates")
-      .select(`
-        *,
-        profiles:issuer_id (display_name, company_name)
-      `)
+      .select("*")
       .or(`serial_number.ilike.%${query}%,product_name.ilike.%${query}%`)
       .eq("status", "active")
       .limit(20);
 
     if (error) throw error;
-    return data;
+    if (!certificates || certificates.length === 0) return [];
+
+    // Then get the issuer profiles separately
+    const issuerIds = [...new Set(certificates.map(c => c.issuer_id).filter(Boolean))];
+    
+    if (issuerIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, company_name")
+        .in("user_id", issuerIds);
+
+      // Merge profile data into certificates
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      return certificates.map(cert => ({
+        ...cert,
+        profiles: cert.issuer_id ? profileMap.get(cert.issuer_id) : null,
+      }));
+    }
+
+    return certificates;
   };
 
   const getCertificateBySerial = async (serialNumber: string) => {
-    const { data, error } = await supabase
+    const { data: certificate, error } = await supabase
       .from("certificates")
-      .select(`
-        *,
-        profiles:issuer_id (display_name, company_name)
-      `)
+      .select("*")
       .eq("serial_number", serialNumber)
       .maybeSingle();
 
     if (error) throw error;
-    return data;
+    if (!certificate) return null;
+
+    // Get issuer profile if exists
+    if (certificate.issuer_id) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, company_name")
+        .eq("user_id", certificate.issuer_id)
+        .maybeSingle();
+
+      return { ...certificate, profiles: profile };
+    }
+
+    return certificate;
   };
 
   const getCertificateById = async (id: string) => {
-    const { data, error } = await supabase
+    const { data: certificate, error } = await supabase
       .from("certificates")
-      .select(`
-        *,
-        profiles:issuer_id (display_name, company_name)
-      `)
+      .select("*")
       .eq("id", id)
       .maybeSingle();
 
     if (error) throw error;
-    return data;
+    if (!certificate) return null;
+
+    // Get issuer profile if exists
+    if (certificate.issuer_id) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, company_name")
+        .eq("user_id", certificate.issuer_id)
+        .maybeSingle();
+
+      return { ...certificate, profiles: profile };
+    }
+
+    return certificate;
   };
 
   return {
