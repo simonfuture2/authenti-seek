@@ -64,6 +64,10 @@ import { SealSelector } from "@/components/certificate/SealSelector";
 import { CertificatePreview } from "@/components/certificate/CertificatePreview";
 import { CertificateTheme, SealStyle } from "@/components/certificate/CertificateThemes";
 
+// Verification data components
+import { PhysicalAttributesForm } from "@/components/issuer/PhysicalAttributesForm";
+import { UniqueIdentifiersForm } from "@/components/issuer/UniqueIdentifiersForm";
+
 const createCertificateSchema = z.object({
   serial_number: z.string().min(3, "Serial number must be at least 3 characters").max(50),
   product_name: z.string().min(2, "Product name is required").max(100),
@@ -96,6 +100,10 @@ export function CreateCOAPage() {
   // Theme and seal selection
   const [selectedTheme, setSelectedTheme] = useState<CertificateTheme>("luxury");
   const [selectedSeal, setSelectedSeal] = useState<SealStyle>("gold");
+  
+  // Physical attributes and identifiers for verification
+  const [physicalAttributes, setPhysicalAttributes] = useState<Record<string, string>>({});
+  const [uniqueIdentifiers, setUniqueIdentifiers] = useState<Record<string, string>>({});
   
   // AI features state
   const [authenticityScore, setAuthenticityScore] = useState<{
@@ -201,6 +209,20 @@ export function CreateCOAPage() {
         authenticityScore: authenticityScore,
       },
     });
+
+    // Update certificate with physical attributes and identifiers
+    const hasPhysicalData = Object.values(physicalAttributes).some(v => v);
+    const hasIdentifiers = Object.values(uniqueIdentifiers).some(v => v);
+    
+    if (hasPhysicalData || hasIdentifiers) {
+      await supabase
+        .from("certificates")
+        .update({
+          physical_attributes: hasPhysicalData ? physicalAttributes : {},
+          unique_identifiers: hasIdentifiers ? uniqueIdentifiers : {},
+        })
+        .eq("id", result.id);
+    }
 
     // Upload certificate image to storage if available
     let storedImageUrl: string | null = null;
@@ -452,6 +474,8 @@ export function CreateCOAPage() {
                     setProductImages([]);
                     setCertificateImageUrl(null);
                     setAuthenticityScore(null);
+                    setPhysicalAttributes({});
+                    setUniqueIdentifiers({});
                     form.reset();
                   }}
                 >
@@ -639,6 +663,20 @@ export function CreateCOAPage() {
                         maxImages={5}
                       />
                     </div>
+
+                    {/* Physical Attributes for Verification */}
+                    <PhysicalAttributesForm
+                      attributes={physicalAttributes}
+                      onChange={setPhysicalAttributes}
+                      disabled={createCertificate.isPending}
+                    />
+
+                    {/* Unique Identifiers for Verification */}
+                    <UniqueIdentifiersForm
+                      identifiers={uniqueIdentifiers}
+                      onChange={setUniqueIdentifiers}
+                      disabled={createCertificate.isPending}
+                    />
 
                     {/* Seal Selection (only when no product image) */}
                     <SealSelector
