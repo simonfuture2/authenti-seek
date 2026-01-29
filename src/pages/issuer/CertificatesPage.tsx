@@ -85,9 +85,56 @@ export default function CertificatesPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selectedCert, setSelectedCert] = useState<Certificate | null>(null);
   const [, setTick] = useState(0); // For triggering re-renders for countdown
+  const [isMarkingPending, setIsMarkingPending] = useState(false);
   
   const { certificates, isLoading, refetch } = useCertificates();
   const { toast } = useToast();
+
+  // Mark certificate as chain pending (issuer initiated)
+  const handleMarkChainPending = async (cert: Certificate) => {
+    if (cert.solana_signature || cert.chain_pending_at) {
+      toast({
+        title: "Cannot Mark as Pending",
+        description: "This certificate is already on-chain or has a pending status.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsMarkingPending(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from("certificates")
+        .update({
+          chain_pending_at: new Date().toISOString(),
+          chain_pending_by: user.id,
+        })
+        .eq("id", cert.id)
+        .eq("issuer_id", user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Chain Pending Initiated",
+        description: "You have 72 hours to store this certificate on-chain.",
+      });
+
+      refetch();
+      // Update selected cert to reflect the change
+      setSelectedCert(prev => prev ? { ...prev, chain_pending_at: new Date().toISOString(), chain_pending_by: user.id } : null);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to mark as chain pending",
+        variant: "destructive",
+      });
+    } finally {
+      setIsMarkingPending(false);
+    }
+  };
 
   // Real-time subscription for certificate updates
   useEffect(() => {
@@ -742,17 +789,40 @@ export default function CertificatesPage() {
                   )}
 
                 {/* Actions */}
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   <Button
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 min-w-[120px]"
                     onClick={() => setSelectedCert(null)}
                   >
                     Close
                   </Button>
+                  
+                  {/* Mark as Chain Pending button - show only if not on-chain and not already pending */}
+                  {!selectedCert.solana_signature && !selectedCert.chain_pending_at && (
+                    <Button
+                      variant="default"
+                      className="flex-1 min-w-[120px] bg-warning hover:bg-warning/90 text-warning-foreground"
+                      onClick={() => handleMarkChainPending(selectedCert)}
+                      disabled={isMarkingPending}
+                    >
+                      {isMarkingPending ? (
+                        <>
+                          <Clock className="h-4 w-4 mr-2 animate-spin" />
+                          Marking...
+                        </>
+                      ) : (
+                        <>
+                          <Timer className="h-4 w-4 mr-2" />
+                          Mark Chain Pending
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  
                   {getCertificateImage(selectedCert) && (
                     <Button
-                      className="flex-1"
+                      className="flex-1 min-w-[120px]"
                       onClick={() => {
                         const link = document.createElement("a");
                         link.href = getCertificateImage(selectedCert)!;
