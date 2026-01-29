@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from "react";
-import { motion } from "framer-motion";
-import { Search, Package, CheckCircle2, XCircle, ExternalLink, Shield, Clock, AlertTriangle, Timer } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Package, CheckCircle2, XCircle, ExternalLink, Shield, Clock, AlertTriangle, Timer, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { logError } from "@/lib/errorHandler";
 import { toast } from "sonner";
+import { VerificationFlow } from "@/components/verification/VerificationFlow";
 
 // 72 hours in milliseconds
 const CHAIN_PENDING_TIMEOUT_MS = 72 * 60 * 60 * 1000;
@@ -59,6 +60,7 @@ export function SearchPage() {
   } | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [markingPending, setMarkingPending] = useState(false);
+  const [showVerificationFlow, setShowVerificationFlow] = useState(false);
   
   const { user } = useAuth();
   const { searchCertificate } = useCertificateSearch();
@@ -452,6 +454,15 @@ export function SearchPage() {
                           </span>
                         </div>
                       </div>
+
+                      {/* AI Verification Button */}
+                      <Button
+                        onClick={() => setShowVerificationFlow(true)}
+                        className="w-full bg-solana-gradient"
+                      >
+                        <ShieldCheck className="h-4 w-4 mr-2" />
+                        Deep Verify with AI
+                      </Button>
                     </>
                   )}
                 </CardContent>
@@ -459,6 +470,34 @@ export function SearchPage() {
             </motion.div>
           )}
         </div>
+
+        {/* AI Verification Flow Modal */}
+        <AnimatePresence>
+          {showVerificationFlow && selectedCert && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="w-full max-w-2xl my-8"
+              >
+                <VerificationFlow
+                  certificate={selectedCert}
+                  onComplete={() => {
+                    setShowVerificationFlow(false);
+                    toast.success("Verification complete!");
+                  }}
+                  onCancel={() => setShowVerificationFlow(false)}
+                />
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </VerifierDashboardLayout>
   );

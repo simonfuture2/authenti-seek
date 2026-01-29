@@ -110,6 +110,7 @@ export type Database = {
           issued_at: string
           issuer_id: string | null
           metadata: Json | null
+          physical_attributes: Json
           product_category: string | null
           product_description: string | null
           product_images: string[] | null
@@ -119,6 +120,7 @@ export type Database = {
           solana_account: string | null
           solana_signature: string | null
           status: Database["public"]["Enums"]["certificate_status"]
+          unique_identifiers: Json
           updated_at: string
         }
         Insert: {
@@ -130,6 +132,7 @@ export type Database = {
           issued_at?: string
           issuer_id?: string | null
           metadata?: Json | null
+          physical_attributes?: Json
           product_category?: string | null
           product_description?: string | null
           product_images?: string[] | null
@@ -139,6 +142,7 @@ export type Database = {
           solana_account?: string | null
           solana_signature?: string | null
           status?: Database["public"]["Enums"]["certificate_status"]
+          unique_identifiers?: Json
           updated_at?: string
         }
         Update: {
@@ -150,6 +154,7 @@ export type Database = {
           issued_at?: string
           issuer_id?: string | null
           metadata?: Json | null
+          physical_attributes?: Json
           product_category?: string | null
           product_description?: string | null
           product_images?: string[] | null
@@ -159,6 +164,7 @@ export type Database = {
           solana_account?: string | null
           solana_signature?: string | null
           status?: Database["public"]["Enums"]["certificate_status"]
+          unique_identifiers?: Json
           updated_at?: string
         }
         Relationships: []
@@ -298,6 +304,75 @@ export type Database = {
             columns: ["certificate_id"]
             isOneToOne: false
             referencedRelation: "certificates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      verification_results: {
+        Row: {
+          ai_analysis: string | null
+          attribute_checklist: Json | null
+          attribute_confidence: number | null
+          certificate_id: string
+          created_at: string
+          id: string
+          identifier_confidence: number | null
+          identifier_matches: Json | null
+          image_confidence: number | null
+          notes: string | null
+          overall_confidence: number
+          result_status: string
+          verification_log_id: string | null
+          verification_photos: string[] | null
+          verifier_id: string
+        }
+        Insert: {
+          ai_analysis?: string | null
+          attribute_checklist?: Json | null
+          attribute_confidence?: number | null
+          certificate_id: string
+          created_at?: string
+          id?: string
+          identifier_confidence?: number | null
+          identifier_matches?: Json | null
+          image_confidence?: number | null
+          notes?: string | null
+          overall_confidence: number
+          result_status?: string
+          verification_log_id?: string | null
+          verification_photos?: string[] | null
+          verifier_id: string
+        }
+        Update: {
+          ai_analysis?: string | null
+          attribute_checklist?: Json | null
+          attribute_confidence?: number | null
+          certificate_id?: string
+          created_at?: string
+          id?: string
+          identifier_confidence?: number | null
+          identifier_matches?: Json | null
+          image_confidence?: number | null
+          notes?: string | null
+          overall_confidence?: number
+          result_status?: string
+          verification_log_id?: string | null
+          verification_photos?: string[] | null
+          verifier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_results_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verification_results_verification_log_id_fkey"
+            columns: ["verification_log_id"]
+            isOneToOne: false
+            referencedRelation: "verification_logs"
             referencedColumns: ["id"]
           },
         ]
