@@ -20,15 +20,26 @@ interface CustomWalletModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// Detect if running on a touch device (mobile/tablet)
+// Detect if running on a touch device (mobile/tablet) or lacks extension support
 function isTouchDevice(): boolean {
   if (typeof window === "undefined") return false;
-  return (
+  
+  // Check for touch capability
+  const hasTouch = (
     "ontouchstart" in window ||
     navigator.maxTouchPoints > 0 ||
     // @ts-ignore - msMaxTouchPoints for older IE/Edge
     navigator.msMaxTouchPoints > 0
   );
+  
+  // Also detect iPad specifically (iPadOS 13+ reports as Mac)
+  const isIPad = /iPad/.test(navigator.userAgent) || 
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  
+  // Detect if we're in a mobile browser that doesn't support extensions
+  const isMobileBrowser = /Mobile|Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  return hasTouch || isIPad || isMobileBrowser;
 }
 
 // Get the current page URL for deep linking
@@ -258,11 +269,12 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
                 
                 {/* Step-by-step instructions */}
                 <div className="w-full space-y-3 px-2">
-                  <p className="text-sm font-medium text-foreground">How to connect:</p>
+                  <p className="text-sm font-medium text-foreground">Connect with your phone:</p>
                   <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
-                    <li>Open your wallet app (Phantom, Solflare, etc.)</li>
-                    <li>Tap the scan or WalletConnect button</li>
-                    <li>Scan this QR code</li>
+                    <li>Open your wallet app on your <strong>phone</strong> (Phantom, Solflare)</li>
+                    <li>Tap the scan/QR or WalletConnect button in the app</li>
+                    <li>Scan this QR code to connect</li>
+                    <li>Approve transactions on your phone when prompted</li>
                   </ol>
                 </div>
 
@@ -311,14 +323,13 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
                       <div className="flex items-center gap-2">
                         <Smartphone className="h-4 w-4 text-primary" />
                         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          Recommended for Mobile
+                          Recommended for iPad & Tablets
                         </span>
                       </div>
                       <Badge variant="secondary" className="text-xs bg-primary/20 text-primary border-0">
-                        Best Option
+                        Use Phone
                       </Badge>
                     </div>
-                    
                     <Button
                       className={cn(
                         "w-full justify-start gap-3 h-14 px-4",
@@ -337,10 +348,10 @@ export function CustomWalletModal({ open, onOpenChange }: CustomWalletModalProps
                       )}
                       <div className="flex flex-col items-start">
                         <span className="font-semibold text-white">
-                          Use WalletConnect
+                          Connect via Phone
                         </span>
                         <span className="text-xs text-white/80">
-                          Works with any Solana wallet app
+                          Scan QR with Phantom or Solflare app
                         </span>
                       </div>
                     </Button>
