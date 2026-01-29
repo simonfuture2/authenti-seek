@@ -179,13 +179,54 @@ export function useCertificates() {
   };
 }
 
+// Maximum search query length to prevent abuse
+const MAX_SEARCH_QUERY_LENGTH = 100;
+const MIN_SEARCH_QUERY_LENGTH = 2;
+
+/**
+ * Sanitizes search input to prevent LIKE pattern abuse
+ * Replaces excessive wildcards with safe alternatives
+ */
+function sanitizeSearchQuery(query: string): string {
+  // Trim whitespace
+  let sanitized = query.trim();
+  
+  // Replace excessive consecutive wildcards (% or _) with limited versions
+  sanitized = sanitized.replace(/[%_]{3,}/g, '__');
+  
+  // Escape any remaining % or _ that could be used for pattern abuse
+  sanitized = sanitized.replace(/%/g, '\\%').replace(/_/g, '\\_');
+  
+  return sanitized;
+}
+
 export function useCertificateSearch() {
   const searchCertificate = async (query: string) => {
+    // Validate input - return empty for invalid queries
+    if (!query || typeof query !== 'string') {
+      return [];
+    }
+    
+    const trimmedQuery = query.trim();
+    
+    // Check minimum length
+    if (trimmedQuery.length < MIN_SEARCH_QUERY_LENGTH) {
+      return [];
+    }
+    
+    // Check maximum length to prevent abuse
+    if (trimmedQuery.length > MAX_SEARCH_QUERY_LENGTH) {
+      throw new Error(`Search query too long. Maximum ${MAX_SEARCH_QUERY_LENGTH} characters allowed.`);
+    }
+    
+    // Sanitize the query to prevent LIKE pattern abuse
+    const sanitizedQuery = sanitizeSearchQuery(trimmedQuery);
+    
     // First get the certificates
     const { data: certificates, error } = await supabase
       .from("certificates")
       .select("*")
-      .or(`serial_number.ilike.%${query}%,product_name.ilike.%${query}%`)
+      .or(`serial_number.ilike.%${sanitizedQuery}%,product_name.ilike.%${sanitizedQuery}%`)
       .eq("status", "active")
       .limit(20);
 
