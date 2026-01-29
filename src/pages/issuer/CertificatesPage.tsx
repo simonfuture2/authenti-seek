@@ -738,33 +738,62 @@ export default function CertificatesPage() {
 
                 {/* On-chain info */}
                 {selectedCert.solana_signature && (
-                  <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                    <div className="flex items-center gap-2 mb-2">
+                  <div className="p-4 rounded-lg bg-primary/10 border border-primary/20 space-y-3">
+                    <div className="flex items-center gap-2">
                       <Shield className="h-5 w-5 text-primary" />
                       <span className="font-semibold text-primary">
-                        Stored On-Chain
+                        {selectedCert.solana_account ? "Minted as NFT" : "Stored On-Chain"}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <code className="flex-1 text-xs font-mono bg-muted/50 px-2 py-1 rounded truncate">
-                        {selectedCert.solana_signature}
-                      </code>
-                      <button
-                        onClick={() =>
-                          copyToClipboard(selectedCert.solana_signature!)
-                        }
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </button>
-                      <a
-                        href={getExplorerUrl(selectedCert.solana_signature)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:text-primary/80"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
+
+                    {/* NFT Mint Address - show if minted as NFT */}
+                    {selectedCert.solana_account && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">NFT Mint Address</p>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 text-xs font-mono bg-muted/50 px-2 py-1 rounded truncate">
+                            {selectedCert.solana_account}
+                          </code>
+                          <button
+                            onClick={() => copyToClipboard(selectedCert.solana_account!)}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </button>
+                          <a
+                            href={`https://explorer.solana.com/address/${selectedCert.solana_account}?cluster=devnet`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:text-primary/80"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Transaction Signature */}
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Transaction Signature</p>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 text-xs font-mono bg-muted/50 px-2 py-1 rounded truncate">
+                          {selectedCert.solana_signature}
+                        </code>
+                        <button
+                          onClick={() => copyToClipboard(selectedCert.solana_signature!)}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                        <a
+                          href={getExplorerUrl(selectedCert.solana_signature)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:text-primary/80"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </div>
                     </div>
                   </div>
                 )}
