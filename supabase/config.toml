@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.nft-metadata]
 verify_jwt = false
+
+[functions.purchase-credits]
+verify_jwt = false

@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { cn } from "@/lib/utils";
 import { WalletButton } from "@/components/wallet/WalletButton";
+import { CreditsDisplay } from "@/components/credits/CreditsDisplay";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -113,6 +114,11 @@ export function VerifierDashboardLayout({ children }: DashboardLayoutProps) {
             </motion.button>
           ))}
         </nav>
+
+        {/* Credits Display */}
+        <div className="px-4 py-2">
+          <CreditsDisplay compact />
+        </div>
 
         {/* Wallet connection */}
         <div className="p-4 border-t border-sidebar-border">
