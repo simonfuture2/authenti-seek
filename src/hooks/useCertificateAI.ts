@@ -7,6 +7,7 @@ type AIAction =
   | "generate_description"
   | "analyze_authenticity"
   | "generate_seal_design"
+  | "generate_seal_image"
   | "enhance_certificate";
 
 interface AuthenticityAnalysis {
@@ -23,6 +24,10 @@ interface SealDesign {
   tagline: string;
 }
 
+interface SealImage {
+  imageUrl: string;
+}
+
 interface CertificateEnhancement {
   headline: string;
   subtitle: string;
@@ -35,16 +40,20 @@ interface AIRequestParams {
   productImageUrl?: string;
   existingDescription?: string;
   serialNumber?: string;
+  sealStyle?: string;
 }
 
 export function useCertificateAI() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   const callAI = useCallback(async <T>(
     action: AIAction,
-    params: AIRequestParams
+    params: AIRequestParams,
+    setLoadingState?: (loading: boolean) => void
   ): Promise<T | null> => {
-    setIsLoading(true);
+    const setLoading = setLoadingState || setIsLoading;
+    setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("certificate-ai", {
         body: { action, ...params },
@@ -75,7 +84,7 @@ export function useCertificateAI() {
       
       return null;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }, []);
 
@@ -112,6 +121,29 @@ export function useCertificateAI() {
     [callAI]
   );
 
+  const generateSealImage = useCallback(
+    async (params: AIRequestParams): Promise<string | null> => {
+      setIsGeneratingImage(true);
+      try {
+        const result = await callAI<SealImage>(
+          "generate_seal_image", 
+          params,
+          setIsGeneratingImage
+        );
+        if (result?.imageUrl) {
+          toast.success("AI seal image generated!");
+          return result.imageUrl;
+        }
+        return null;
+      } catch {
+        return null;
+      } finally {
+        setIsGeneratingImage(false);
+      }
+    },
+    [callAI]
+  );
+
   const enhanceCertificate = useCallback(
     async (params: AIRequestParams): Promise<CertificateEnhancement | null> => {
       const result = await callAI<CertificateEnhancement>("enhance_certificate", params);
@@ -125,9 +157,11 @@ export function useCertificateAI() {
 
   return {
     isLoading,
+    isGeneratingImage,
     generateDescription,
     analyzeAuthenticity,
     generateSealDesign,
+    generateSealImage,
     enhanceCertificate,
   };
 }
