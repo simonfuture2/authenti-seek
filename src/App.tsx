@@ -5,13 +5,17 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SolanaProvider } from "@/contexts/SolanaContext";
+import LandingPage from "./pages/LandingPage";
 import AuthPage from "./pages/AuthPage";
+import SettingsPage from "./pages/SettingsPage";
 import CreateCOAPage from "./pages/issuer/CreateCOAPage";
 import CertificatesPage from "./pages/issuer/CertificatesPage";
 import TransferCOAPage from "./pages/issuer/TransferCOAPage";
 import AnalyticsPage from "./pages/issuer/AnalyticsPage";
 import ScanQRPage from "./pages/verifier/ScanQRPage";
 import SearchPage from "./pages/verifier/SearchPage";
+import HistoryPage from "./pages/verifier/HistoryPage";
+import ReportFakePage from "./pages/verifier/ReportFakePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,8 +63,9 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/auth" replace />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       
       {/* Issuer Routes */}
       <Route path="/issuer/create" element={<ProtectedRoute requiredRole="issuer"><CreateCOAPage /></ProtectedRoute>} />
@@ -71,6 +76,8 @@ function AppRoutes() {
       {/* Verifier Routes */}
       <Route path="/verifier/scan" element={<ProtectedRoute requiredRole="verifier"><ScanQRPage /></ProtectedRoute>} />
       <Route path="/verifier/search" element={<ProtectedRoute requiredRole="verifier"><SearchPage /></ProtectedRoute>} />
+      <Route path="/verifier/history" element={<ProtectedRoute requiredRole="verifier"><HistoryPage /></ProtectedRoute>} />
+      <Route path="/verifier/report" element={<ProtectedRoute requiredRole="verifier"><ReportFakePage /></ProtectedRoute>} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>
