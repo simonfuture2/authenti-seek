@@ -41,12 +41,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { IssuerDashboardLayout } from "@/components/layout/IssuerDashboardLayout";
 import { useCertificates, Certificate } from "@/hooks/useCertificates";
 import { useToast } from "@/hooks/use-toast";
-import { useSolanaTransaction } from "@/hooks/useSolanaTransaction";
+import { useNFTMinting } from "@/hooks/useNFTMinting";
 import { getExplorerUrl } from "@/lib/solana";
+import { MintingMode } from "@/lib/metaplex";
 import { cn } from "@/lib/utils";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
 import { WalletButton } from "@/components/wallet/WalletButton";
+import { MintModeSelector } from "@/components/certificate/MintModeSelector";
 
 type ViewMode = "grid" | "list";
 type StatusFilter = "all" | "active" | "transferred" | "revoked" | "chain_pending";
@@ -91,10 +93,11 @@ export default function CertificatesPage() {
   const [, setTick] = useState(0); // For triggering re-renders for countdown
   const [isMarkingPending, setIsMarkingPending] = useState(false);
   const [isMinting, setIsMinting] = useState(false);
+  const [mintingMode, setMintingMode] = useState<MintingMode>("nft");
   
   const { certificates, isLoading, refetch } = useCertificates();
   const { toast } = useToast();
-  const { submitCertificate, isConnected, publicKey, isSubmitting } = useSolanaTransaction();
+  const { mintCertificate, isConnected, publicKey, isSubmitting } = useNFTMinting();
 
   // Store certificate on-chain
   const handleStoreOnChain = async (cert: Certificate) => {
@@ -120,42 +123,42 @@ export default function CertificatesPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Prepare on-chain data
-      const onChainData = {
-        serialNumber: cert.serial_number,
-        productName: cert.product_name,
-        issuerId: user.id,
-        timestamp: Date.now(),
-        metadataHash: cert.id,
-      };
-
-      // Submit to blockchain
-      const result = await submitCertificate(onChainData);
+      // Use the new NFT minting hook with selected mode
+      const result = await mintCertificate(cert, user.id, mintingMode);
       
-      if (result) {
+      if (result?.success && result.signature) {
+        // Build update object based on minting mode
+        const updateData: Record<string, unknown> = {
+          solana_signature: result.signature,
+          chain_pending_at: null,
+          chain_pending_by: null,
+        };
+
+        // For NFT mode, also store the mint address in metadata
+        if (result.mode === "nft" && result.mintAddress) {
+          const currentMetadata = (cert.metadata || {}) as Record<string, unknown>;
+          updateData.metadata = {
+            ...currentMetadata,
+            solana_mint_address: result.mintAddress,
+          };
+          updateData.solana_account = result.mintAddress;
+        }
+
         // Update database with Solana signature
         const { error } = await supabase
           .from("certificates")
-          .update({
-            solana_signature: result.signature,
-            chain_pending_at: null, // Clear pending status
-            chain_pending_by: null,
-          })
+          .update(updateData)
           .eq("id", cert.id)
           .eq("issuer_id", user.id);
 
         if (error) throw error;
-
-        toast({
-          title: "Stored On-Chain! 🎉",
-          description: "Certificate is now permanently recorded on Solana blockchain.",
-        });
 
         refetch();
         // Update selected cert to reflect the change
         setSelectedCert(prev => prev ? { 
           ...prev, 
           solana_signature: result.signature,
+          solana_account: result.mintAddress || null,
           chain_pending_at: null,
           chain_pending_by: null,
         } : null);
@@ -869,18 +872,30 @@ export default function CertificatesPage() {
                     </div>
                   )}
 
-                {/* Wallet Connection Section - show if certificate needs on-chain storage */}
+                {/* Wallet Connection & Minting Section - show if certificate needs on-chain storage */}
                 {!selectedCert.solana_signature && (
-                  <div className="p-4 rounded-lg border border-border bg-muted/30 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Wallet className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">Solana Wallet</span>
+                  <div className="space-y-4">
+                    {/* Wallet Connection */}
+                    <div className="p-4 rounded-lg border border-border bg-muted/30 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Wallet className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium">Solana Wallet</span>
+                      </div>
+                      <WalletButton />
+                      {isConnected && publicKey && (
+                        <p className="text-xs text-muted-foreground">
+                          Connected: {publicKey.toBase58().slice(0, 8)}...{publicKey.toBase58().slice(-8)}
+                        </p>
+                      )}
                     </div>
-                    <WalletButton />
-                    {isConnected && publicKey && (
-                      <p className="text-xs text-muted-foreground">
-                        Connected: {publicKey.toBase58().slice(0, 8)}...{publicKey.toBase58().slice(-8)}
-                      </p>
+
+                    {/* Minting Mode Selector */}
+                    {isConnected && (
+                      <MintModeSelector
+                        value={mintingMode}
+                        onChange={setMintingMode}
+                        disabled={isMinting || isSubmitting}
+                      />
                     )}
                   </div>
                 )}
@@ -906,12 +921,14 @@ export default function CertificatesPage() {
                       {isMinting || isSubmitting ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Minting...
+                          {mintingMode === "nft" ? "Minting NFT..." : "Storing Memo..."}
                         </>
                       ) : (
                         <>
                           <Shield className="h-4 w-4 mr-2" />
-                          {selectedCert.chain_pending_at ? "Mint Now (Chain Pending)" : "Store on Chain"}
+                          {selectedCert.chain_pending_at 
+                            ? (mintingMode === "nft" ? "Mint NFT Now" : "Store Memo Now")
+                            : (mintingMode === "nft" ? "Mint as NFT" : "Store as Memo")}
                         </>
                       )}
                     </Button>

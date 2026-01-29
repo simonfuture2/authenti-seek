@@ -1,0 +1,165 @@
+import { useState, useCallback } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useToast } from "@/hooks/use-toast";
+import { logError } from "@/lib/errorHandler";
+import {
+  mintCertificateNFT,
+  createNFTMetadataJson,
+  metadataToDataUri,
+  MintNFTResult,
+  MintingMode,
+} from "@/lib/metaplex";
+import {
+  storeCertificateOnChain,
+  CertificateOnChainData,
+  OnChainResult,
+  getExplorerUrl,
+  hasEnoughBalance,
+} from "@/lib/solana";
+import type { Certificate } from "@/hooks/useCertificates";
+
+interface MintResult {
+  success: boolean;
+  signature?: string;
+  mintAddress?: string;
+  explorerUrl?: string;
+  mode: MintingMode;
+}
+
+export function useNFTMinting() {
+  const wallet = useWallet();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastResult, setLastResult] = useState<MintResult | null>(null);
+
+  /**
+   * Mint certificate using selected mode
+   */
+  const mintCertificate = useCallback(
+    async (
+      certificate: Certificate,
+      issuerId: string,
+      mode: MintingMode
+    ): Promise<MintResult | null> => {
+      if (!wallet.connected || !wallet.publicKey) {
+        toast({
+          title: "Wallet Not Connected",
+          description: "Please connect your Solana wallet first.",
+          variant: "destructive",
+        });
+        return null;
+      }
+
+      setIsSubmitting(true);
+
+      try {
+        // Check balance
+        const minBalance = mode === "nft" ? 0.015 : 0.001;
+        const hasBalance = await hasEnoughBalance(wallet.publicKey, minBalance);
+        if (!hasBalance) {
+          toast({
+            title: "Insufficient Balance",
+            description: `You need at least ${minBalance} SOL for this transaction.`,
+            variant: "destructive",
+          });
+          return null;
+        }
+
+        if (mode === "nft") {
+          // Full NFT minting with Metaplex
+          const metadata = certificate.metadata as { certificateImageUrl?: string } | null;
+          const certificateImageUrl = metadata?.certificateImageUrl || 
+            (certificate.product_images?.[0] ?? "");
+
+          if (!certificateImageUrl) {
+            toast({
+              title: "No Certificate Image",
+              description: "Please ensure the certificate has an image before minting as NFT.",
+              variant: "destructive",
+            });
+            return null;
+          }
+
+          const nftMetadata = createNFTMetadataJson(
+            certificate.serial_number,
+            certificate.product_name,
+            certificate.product_description || "",
+            certificateImageUrl,
+            issuerId,
+            certificate.issued_at,
+            certificate.product_category || undefined
+          );
+
+          // Create metadata URI (data URI for devnet testing)
+          const metadataUri = metadataToDataUri(nftMetadata);
+
+          // Mint the NFT
+          const result = await mintCertificateNFT(wallet, nftMetadata, metadataUri);
+
+          const mintResult: MintResult = {
+            success: true,
+            signature: result.signature,
+            mintAddress: result.mintAddress,
+            explorerUrl: result.explorerUrl,
+            mode: "nft",
+          };
+
+          setLastResult(mintResult);
+
+          toast({
+            title: "NFT Minted! 🎉",
+            description: "Your certificate is now a visual NFT on Solana.",
+          });
+
+          return mintResult;
+        } else {
+          // Privacy memo mode (existing implementation)
+          const onChainData: CertificateOnChainData = {
+            serialNumber: certificate.serial_number,
+            productName: certificate.product_name,
+            issuerId,
+            timestamp: Date.now(),
+            metadataHash: certificate.id,
+          };
+
+          const result = await storeCertificateOnChain(wallet, onChainData);
+
+          const mintResult: MintResult = {
+            success: true,
+            signature: result.signature,
+            explorerUrl: getExplorerUrl(result.signature),
+            mode: "memo",
+          };
+
+          setLastResult(mintResult);
+
+          toast({
+            title: "Stored On-Chain! 🎉",
+            description: "Certificate hash stored via memo program.",
+          });
+
+          return mintResult;
+        }
+      } catch (error: any) {
+        logError(error, "useNFTMinting.mintCertificate");
+        toast({
+          title: "Minting Failed",
+          description: error.message || "Failed to mint certificate. Please try again.",
+          variant: "destructive",
+        });
+        return null;
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [wallet, toast]
+  );
+
+  return {
+    mintCertificate,
+    isSubmitting,
+    lastResult,
+    isConnected: wallet.connected,
+    publicKey: wallet.publicKey,
+  };
+}
