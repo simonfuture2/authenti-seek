@@ -166,6 +166,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Add credits using the database function
+    // The unique constraint on solana_signature will prevent double-spend at DB level
     const { data: addResult, error: addError } = await supabase.rpc("add_credits", {
       p_user_id: userId,
       p_amount: creditPackage.credits,
@@ -176,6 +177,16 @@ Deno.serve(async (req: Request) => {
 
     if (addError) {
       console.error("Error adding credits:", addError);
+      
+      // Check for unique constraint violation (Postgres error code 23505)
+      // This catches race conditions where duplicate requests slip through
+      if (addError.code === '23505' || addError.message?.includes('unique_solana_signature')) {
+        return new Response(
+          JSON.stringify({ error: "Transaction already processed" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ error: "Failed to add credits" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
