@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import {
@@ -15,6 +15,8 @@ import {
   Eye,
   ImageIcon,
   Shield,
+  Timer,
+  AlertTriangle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -40,18 +42,97 @@ import { useToast } from "@/hooks/use-toast";
 import { getExplorerUrl } from "@/lib/solana";
 import { cn } from "@/lib/utils";
 import { QRCodeSVG } from "qrcode.react";
+import { supabase } from "@/integrations/supabase/client";
 
 type ViewMode = "grid" | "list";
-type StatusFilter = "all" | "active" | "transferred" | "revoked";
+type StatusFilter = "all" | "active" | "transferred" | "revoked" | "chain_pending";
+
+// 72 hours in milliseconds
+const CHAIN_PENDING_TIMEOUT_MS = 72 * 60 * 60 * 1000;
+
+type ChainPendingStatus = "none" | "pending" | "expired";
+
+const getChainPendingStatus = (cert: Certificate): ChainPendingStatus => {
+  if (cert.solana_signature) return "none";
+  if (!cert.chain_pending_at) return "none";
+  
+  const pendingTime = new Date(cert.chain_pending_at).getTime();
+  const now = Date.now();
+  const elapsed = now - pendingTime;
+  
+  if (elapsed >= CHAIN_PENDING_TIMEOUT_MS) {
+    return "expired";
+  }
+  return "pending";
+};
+
+const formatTimeRemaining = (chain_pending_at: string): string => {
+  const pendingTime = new Date(chain_pending_at).getTime();
+  const deadline = pendingTime + CHAIN_PENDING_TIMEOUT_MS;
+  const remaining = deadline - Date.now();
+  
+  if (remaining <= 0) return "Expired";
+  
+  const hours = Math.floor(remaining / (1000 * 60 * 60));
+  const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+  
+  return `${hours}h ${minutes}m`;
+};
 
 export default function CertificatesPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selectedCert, setSelectedCert] = useState<Certificate | null>(null);
+  const [, setTick] = useState(0); // For triggering re-renders for countdown
   
-  const { certificates, isLoading } = useCertificates();
+  const { certificates, isLoading, refetch } = useCertificates();
   const { toast } = useToast();
+
+  // Real-time subscription for certificate updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('issuer-certificates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'certificates',
+        },
+        (payload) => {
+          console.log('Certificate updated:', payload);
+          refetch();
+          
+          // If chain_pending_at was just set, show a toast
+          const newData = payload.new as Certificate;
+          if (newData.chain_pending_at && !payload.old?.chain_pending_at) {
+            toast({
+              title: "Chain Pending Alert",
+              description: `Certificate ${newData.serial_number} requires on-chain storage within 72 hours.`,
+              variant: "destructive",
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetch, toast]);
+
+  // Update countdown timer every minute
+  useEffect(() => {
+    const hasChainPending = certificates.some(c => c.chain_pending_at && !c.solana_signature);
+    if (!hasChainPending) return;
+    
+    const interval = setInterval(() => {
+      setTick(t => t + 1);
+    }, 60000); // Update every minute
+    
+    return () => clearInterval(interval);
+  }, [certificates]);
 
   // Filter certificates
   const filteredCertificates = certificates.filter((cert) => {
@@ -60,11 +141,25 @@ export default function CertificatesPage() {
       cert.serial_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
       cert.product_category?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus =
-      statusFilter === "all" || cert.status === statusFilter;
+    const chainPendingStatus = getChainPendingStatus(cert);
+    
+    let matchesStatus = false;
+    if (statusFilter === "all") {
+      matchesStatus = true;
+    } else if (statusFilter === "chain_pending") {
+      matchesStatus = chainPendingStatus === "pending" || chainPendingStatus === "expired";
+    } else {
+      matchesStatus = cert.status === statusFilter;
+    }
 
     return matchesSearch && matchesStatus;
   });
+
+  // Count chain pending certificates
+  const chainPendingCount = certificates.filter(c => {
+    const status = getChainPendingStatus(c);
+    return status === "pending" || status === "expired";
+  }).length;
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -154,6 +249,7 @@ export default function CertificatesPage() {
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="transferred">Transferred</SelectItem>
                 <SelectItem value="revoked">Revoked</SelectItem>
+                <SelectItem value="chain_pending">Chain Pending</SelectItem>
               </SelectContent>
             </Select>
 
@@ -183,7 +279,7 @@ export default function CertificatesPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="grid grid-cols-2 sm:grid-cols-4 gap-4"
+          className="grid grid-cols-2 sm:grid-cols-5 gap-4"
         >
           <Card className="glass-card">
             <CardContent className="pt-4 pb-4">
@@ -213,6 +309,14 @@ export default function CertificatesPage() {
                 {certificates.filter((c) => c.solana_signature).length}
               </p>
               <p className="text-xs text-muted-foreground">On-Chain</p>
+            </CardContent>
+          </Card>
+          <Card className={cn("glass-card", chainPendingCount > 0 && "border-warning/50")}>
+            <CardContent className="pt-4 pb-4">
+              <p className={cn("text-2xl font-bold", chainPendingCount > 0 ? "text-warning" : "")}>
+                {chainPendingCount}
+              </p>
+              <p className="text-xs text-muted-foreground">Chain Pending</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -264,6 +368,7 @@ export default function CertificatesPage() {
           >
             {filteredCertificates.map((cert, index) => {
               const certImage = getCertificateImage(cert);
+              const chainPendingStatus = getChainPendingStatus(cert);
 
               return (
                 <motion.div
@@ -274,7 +379,11 @@ export default function CertificatesPage() {
                 >
                   {viewMode === "grid" ? (
                     <Card
-                      className="glass-card overflow-hidden cursor-pointer hover:border-primary/50 transition-colors group"
+                      className={cn(
+                        "glass-card overflow-hidden cursor-pointer hover:border-primary/50 transition-colors group",
+                        chainPendingStatus === "expired" && "border-destructive/50",
+                        chainPendingStatus === "pending" && "border-warning/50"
+                      )}
                       onClick={() => setSelectedCert(cert)}
                     >
                       {/* Certificate Image */}
@@ -291,14 +400,26 @@ export default function CertificatesPage() {
                           </div>
                         )}
 
-                        {/* On-chain badge */}
-                        {cert.solana_signature && (
-                          <div className="absolute top-2 right-2">
+                        {/* Status badges */}
+                        <div className="absolute top-2 right-2 flex flex-col gap-1">
+                          {cert.solana_signature && (
                             <Badge className="bg-solana-gradient text-white text-xs">
                               On-Chain
                             </Badge>
-                          </div>
-                        )}
+                          )}
+                          {chainPendingStatus === "pending" && (
+                            <Badge className="bg-warning text-warning-foreground text-xs gap-1">
+                              <Timer className="h-3 w-3" />
+                              {formatTimeRemaining(cert.chain_pending_at!)}
+                            </Badge>
+                          )}
+                          {chainPendingStatus === "expired" && (
+                            <Badge className="bg-destructive text-destructive-foreground text-xs gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              VOID
+                            </Badge>
+                          )}
+                        </div>
 
                         {/* Hover overlay */}
                         <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -333,7 +454,11 @@ export default function CertificatesPage() {
                   ) : (
                     /* List View */
                     <Card
-                      className="glass-card cursor-pointer hover:border-primary/50 transition-colors"
+                      className={cn(
+                        "glass-card cursor-pointer hover:border-primary/50 transition-colors",
+                        chainPendingStatus === "expired" && "border-destructive/50",
+                        chainPendingStatus === "pending" && "border-warning/50"
+                      )}
                       onClick={() => setSelectedCert(cert)}
                     >
                       <CardContent className="p-4">
@@ -355,13 +480,25 @@ export default function CertificatesPage() {
 
                           {/* Info */}
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
                               <h3 className="font-semibold truncate">
                                 {cert.product_name}
                               </h3>
                               {cert.solana_signature && (
                                 <Badge className="bg-solana-gradient text-white text-xs">
                                   On-Chain
+                                </Badge>
+                              )}
+                              {chainPendingStatus === "pending" && (
+                                <Badge className="bg-warning text-warning-foreground text-xs gap-1">
+                                  <Timer className="h-3 w-3" />
+                                  {formatTimeRemaining(cert.chain_pending_at!)}
+                                </Badge>
+                              )}
+                              {chainPendingStatus === "expired" && (
+                                <Badge className="bg-destructive text-destructive-foreground text-xs gap-1">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  VOID
                                 </Badge>
                               )}
                             </div>
@@ -413,6 +550,50 @@ export default function CertificatesPage() {
               </DialogHeader>
 
               <div className="space-y-6">
+                {/* Chain Pending Alert */}
+                {(() => {
+                  const chainStatus = getChainPendingStatus(selectedCert);
+                  if (chainStatus === "pending") {
+                    return (
+                      <div className="p-4 rounded-lg bg-warning/10 border border-warning/30">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Timer className="h-5 w-5 text-warning" />
+                          <span className="font-semibold text-warning">
+                            Chain Pending - Action Required
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          A verifier has flagged this certificate for on-chain storage. 
+                          You must store it on the blockchain within the deadline to maintain validity.
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-warning text-warning-foreground gap-1">
+                            <Timer className="h-3 w-3" />
+                            {formatTimeRemaining(selectedCert.chain_pending_at!)} remaining
+                          </Badge>
+                        </div>
+                      </div>
+                    );
+                  }
+                  if (chainStatus === "expired") {
+                    return (
+                      <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30">
+                        <div className="flex items-center gap-2 mb-2">
+                          <AlertTriangle className="h-5 w-5 text-destructive" />
+                          <span className="font-semibold text-destructive">
+                            Certificate VOID
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          The 72-hour deadline has passed without on-chain storage. 
+                          This certificate is no longer considered authentic.
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
                 {/* Certificate Image */}
                 {getCertificateImage(selectedCert) && (
                   <div className="rounded-xl overflow-hidden border border-border">
