@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SolanaProvider } from "@/contexts/SolanaContext";
 import AuthPage from "./pages/AuthPage";
 import CreateCOAPage from "./pages/issuer/CreateCOAPage";
+import CertificatesPage from "./pages/issuer/CertificatesPage";
 import TransferCOAPage from "./pages/issuer/TransferCOAPage";
 import AnalyticsPage from "./pages/issuer/AnalyticsPage";
 import ScanQRPage from "./pages/verifier/ScanQRPage";
@@ -63,6 +64,7 @@ function AppRoutes() {
       
       {/* Issuer Routes */}
       <Route path="/issuer/create" element={<ProtectedRoute requiredRole="issuer"><CreateCOAPage /></ProtectedRoute>} />
+      <Route path="/issuer/certificates" element={<ProtectedRoute requiredRole="issuer"><CertificatesPage /></ProtectedRoute>} />
       <Route path="/issuer/transfer" element={<ProtectedRoute requiredRole="issuer"><TransferCOAPage /></ProtectedRoute>} />
       <Route path="/issuer/analytics" element={<ProtectedRoute requiredRole="issuer"><AnalyticsPage /></ProtectedRoute>} />
       
