@@ -222,19 +222,22 @@ export function useCertificateSearch() {
     // Sanitize the query to prevent LIKE pattern abuse
     const sanitizedQuery = sanitizeSearchQuery(trimmedQuery);
     
-    // First get the certificates
-    const { data: certificates, error } = await supabase
-      .from("certificates")
+    // Use the secure public view that excludes sensitive blockchain data
+    // Cast to Certificate type since the view has the same structure (minus hidden fields)
+    const { data, error } = await supabase
+      .from("certificates_public" as any)
       .select("*")
       .or(`serial_number.ilike.%${sanitizedQuery}%,product_name.ilike.%${sanitizedQuery}%`)
       .eq("status", "active")
       .limit(20);
 
     if (error) throw error;
+    
+    const certificates = data as unknown as Certificate[] | null;
     if (!certificates || certificates.length === 0) return [];
 
     // Then get the issuer profiles separately
-    const issuerIds = [...new Set(certificates.map(c => c.issuer_id).filter(Boolean))];
+    const issuerIds = [...new Set(certificates.map(c => c.issuer_id).filter(Boolean))] as string[];
     
     if (issuerIds.length > 0) {
       const { data: profiles } = await supabase
@@ -254,13 +257,16 @@ export function useCertificateSearch() {
   };
 
   const getCertificateBySerial = async (serialNumber: string) => {
-    const { data: certificate, error } = await supabase
-      .from("certificates")
+    // Use the secure public view that excludes sensitive blockchain data
+    const { data, error } = await supabase
+      .from("certificates_public" as any)
       .select("*")
       .eq("serial_number", serialNumber)
       .maybeSingle();
 
     if (error) throw error;
+    
+    const certificate = data as unknown as Certificate | null;
     if (!certificate) return null;
 
     // Get issuer profile if exists
@@ -278,13 +284,16 @@ export function useCertificateSearch() {
   };
 
   const getCertificateById = async (id: string) => {
-    const { data: certificate, error } = await supabase
-      .from("certificates")
+    // Use the secure public view that excludes sensitive blockchain data
+    const { data, error } = await supabase
+      .from("certificates_public" as any)
       .select("*")
       .eq("id", id)
       .maybeSingle();
 
     if (error) throw error;
+    
+    const certificate = data as unknown as Certificate | null;
     if (!certificate) return null;
 
     // Get issuer profile if exists

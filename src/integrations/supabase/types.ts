@@ -57,6 +57,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "certificate_metadata_versions_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "certificate_metadata_versions_previous_version_id_fkey"
             columns: ["previous_version_id"]
             isOneToOne: false
@@ -96,6 +103,13 @@ export type Database = {
             columns: ["certificate_id"]
             isOneToOne: false
             referencedRelation: "certificates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificate_transfers_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates_public"
             referencedColumns: ["id"]
           },
         ]
@@ -295,6 +309,13 @@ export type Database = {
             referencedRelation: "certificates"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fake_reports_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -417,6 +438,13 @@ export type Database = {
             referencedRelation: "certificates"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "verification_logs_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       verification_results: {
@@ -480,6 +508,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "verification_results_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "verification_results_verification_log_id_fkey"
             columns: ["verification_log_id"]
             isOneToOne: false
@@ -490,7 +525,69 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      certificates_public: {
+        Row: {
+          created_at: string | null
+          current_owner_wallet: string | null
+          id: string | null
+          issued_at: string | null
+          issuer_id: string | null
+          metadata: Json | null
+          physical_attributes: Json | null
+          product_category: string | null
+          product_description: string | null
+          product_images: string[] | null
+          product_name: string | null
+          qr_code_data: string | null
+          serial_number: string | null
+          solana_account: string | null
+          solana_signature: string | null
+          status: Database["public"]["Enums"]["certificate_status"] | null
+          unique_identifiers: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_owner_wallet?: string | null
+          id?: string | null
+          issued_at?: string | null
+          issuer_id?: string | null
+          metadata?: Json | null
+          physical_attributes?: Json | null
+          product_category?: string | null
+          product_description?: string | null
+          product_images?: string[] | null
+          product_name?: string | null
+          qr_code_data?: string | null
+          serial_number?: string | null
+          solana_account?: never
+          solana_signature?: never
+          status?: Database["public"]["Enums"]["certificate_status"] | null
+          unique_identifiers?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_owner_wallet?: string | null
+          id?: string | null
+          issued_at?: string | null
+          issuer_id?: string | null
+          metadata?: Json | null
+          physical_attributes?: Json | null
+          product_category?: string | null
+          product_description?: string | null
+          product_images?: string[] | null
+          product_name?: string | null
+          qr_code_data?: string | null
+          serial_number?: string | null
+          solana_account?: never
+          solana_signature?: never
+          status?: Database["public"]["Enums"]["certificate_status"] | null
+          unique_identifiers?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_credits: {
