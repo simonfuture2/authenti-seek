@@ -19,6 +19,7 @@ interface CertificatePreviewProps {
   serialNumber: string;
   issuerName?: string;
   category?: string;
+  showSealWithImage?: boolean; // New: show seal below product image
   onImageGenerated?: (dataUrl: string) => void;
   className?: string;
 }
@@ -32,6 +33,7 @@ export function CertificatePreview({
   serialNumber,
   issuerName,
   category,
+  showSealWithImage = true,
   onImageGenerated,
   className,
 }: CertificatePreviewProps) {
@@ -70,6 +72,10 @@ export function CertificatePreview({
     // Draw product image, AI seal, or preset seal
     if (productImage) {
       await drawProductImage(ctx, size, productImage, themeConfig);
+      // Draw seal below the product image if enabled
+      if (showSealWithImage) {
+        drawSealBelowImage(ctx, size, sealConfig, themeConfig);
+      }
     } else if (aiSealImage) {
       await drawAISealImage(ctx, size, aiSealImage, themeConfig);
     } else {
@@ -92,7 +98,7 @@ export function CertificatePreview({
     setPreviewUrl(dataUrl);
     onImageGenerated?.(dataUrl);
     setIsGenerating(false);
-  }, [theme, sealStyle, productImage, aiSealImage, productName, serialNumber, issuerName, category, onImageGenerated]);
+  }, [theme, sealStyle, productImage, aiSealImage, productName, serialNumber, issuerName, category, showSealWithImage, onImageGenerated]);
 
   useEffect(() => {
     if (productName || serialNumber) {
@@ -359,6 +365,61 @@ async function drawProductImage(
     img.onerror = () => resolve();
     img.src = imageUrl;
   });
+}
+
+// Draw a smaller seal below the product image
+function drawSealBelowImage(
+  ctx: CanvasRenderingContext2D,
+  size: number,
+  seal: ReturnType<typeof getSeal>,
+  theme: ReturnType<typeof getTheme>
+) {
+  const centerX = size / 2;
+  const centerY = 580; // Position below the product image (image ends at ~550)
+  const radius = 50; // Smaller seal
+
+  ctx.save();
+
+  // Outer glow
+  ctx.shadowColor = seal.colors.primary;
+  ctx.shadowBlur = 15;
+
+  // Gradient for seal
+  const gradient = ctx.createRadialGradient(
+    centerX - 15,
+    centerY - 15,
+    0,
+    centerX,
+    centerY,
+    radius
+  );
+  gradient.addColorStop(0, seal.colors.highlight);
+  gradient.addColorStop(0.3, seal.colors.primary);
+  gradient.addColorStop(0.7, seal.colors.secondary);
+  gradient.addColorStop(1, seal.colors.shadow);
+
+  // Main seal circle
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  ctx.shadowBlur = 0;
+
+  // Inner ring
+  ctx.strokeStyle = seal.colors.highlight;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius - 8, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Seal icon (shield) - centered
+  ctx.textAlign = "center";
+  ctx.font = "24px Arial";
+  ctx.fillStyle = seal.id === "platinum" ? "#1a1a2e" : "#ffffff";
+  ctx.fillText("🛡️", centerX, centerY + 8);
+
+  ctx.restore();
 }
 
 async function drawAISealImage(

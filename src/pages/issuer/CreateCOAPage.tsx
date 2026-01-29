@@ -63,6 +63,9 @@ import { ThemeSelector } from "@/components/certificate/ThemeSelector";
 import { SealSelector } from "@/components/certificate/SealSelector";
 import { CertificatePreview } from "@/components/certificate/CertificatePreview";
 import { CertificateTheme, SealStyle } from "@/components/certificate/CertificateThemes";
+import { MintModeSelector } from "@/components/certificate/MintModeSelector";
+import { MintingMode } from "@/lib/metaplex";
+import { useNFTMinting } from "@/hooks/useNFTMinting";
 
 // Verification data components
 import { PhysicalAttributesForm } from "@/components/issuer/PhysicalAttributesForm";
@@ -112,8 +115,12 @@ export function CreateCOAPage() {
     factors: string[];
   } | null>(null);
   const [aiSealImage, setAiSealImage] = useState<string | null>(null);
+  
+  // Minting mode selection
+  const [mintingMode, setMintingMode] = useState<MintingMode>("nft");
 
   const { createCertificate } = useCertificates();
+  const { mintCertificate, isSubmitting: isMinting } = useNFTMinting();
   const { publicKey, connected } = useWallet();
   const { submitCertificate, isSubmitting, getExplorerUrl } = useSolanaTransaction();
   const { user } = useAuth();
@@ -774,6 +781,15 @@ export function CreateCOAPage() {
                       />
                     </div>
 
+                    {/* Minting Mode Selector - shown when on-chain is enabled */}
+                    {storeOnChain && connected && (
+                      <MintModeSelector
+                        value={mintingMode}
+                        onChange={setMintingMode}
+                        disabled={createCertificate.isPending || isMinting}
+                      />
+                    )}
+
                     {storeOnChain && !connected && (
                       <p className="text-sm text-warning">
                         ⚠️ Connect your wallet to store on-chain
@@ -795,17 +811,17 @@ export function CreateCOAPage() {
                     <Button
                       type="submit"
                       className="w-full bg-solana-gradient hover:opacity-90"
-                      disabled={createCertificate.isPending || isSubmitting || uploading || uploadingCertImage}
+                      disabled={createCertificate.isPending || isSubmitting || isMinting || uploading || uploadingCertImage}
                     >
-                      {createCertificate.isPending || isSubmitting || uploadingCertImage ? (
+                      {createCertificate.isPending || isSubmitting || isMinting || uploadingCertImage ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          {uploadingCertImage ? "Uploading Certificate..." : isSubmitting ? "Storing On-Chain..." : "Creating..."}
+                          {uploadingCertImage ? "Uploading Certificate..." : (isSubmitting || isMinting) ? "Storing On-Chain..." : "Creating..."}
                         </>
                       ) : (
                         <>
                           Create Certificate
-                          {storeOnChain && connected && " + Store On-Chain"}
+                          {storeOnChain && connected && (mintingMode === "nft" ? " + Mint NFT" : " + Store On-Chain")}
                         </>
                       )}
                     </Button>
@@ -830,6 +846,7 @@ export function CreateCOAPage() {
                     serialNumber={watchedSerialNumber || "COA-XXXXX"}
                     category={watchedCategory}
                     issuerName={profile?.company_name || profile?.display_name || undefined}
+                    showSealWithImage={productImages.length > 0}
                     onImageGenerated={handleCertificateImageGenerated}
                   />
                 </CardContent>
