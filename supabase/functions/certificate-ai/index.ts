@@ -10,6 +10,7 @@ type AIAction =
   | "generate_description"
   | "analyze_authenticity"
   | "generate_seal_design"
+  | "generate_seal_image"
   | "enhance_certificate";
 
 interface AIRequest {
@@ -19,6 +20,7 @@ interface AIRequest {
   productImageUrl?: string;
   existingDescription?: string;
   serialNumber?: string;
+  sealStyle?: string;
 }
 
 serve(async (req) => {
@@ -32,8 +34,89 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const { action, productName, productCategory, productImageUrl, existingDescription, serialNumber }: AIRequest = await req.json();
+    const { action, productName, productCategory, productImageUrl, existingDescription, serialNumber, sealStyle }: AIRequest = await req.json();
 
+    // Handle image generation separately
+    if (action === "generate_seal_image") {
+      const categoryPrompts: Record<string, string> = {
+        "Art": "artistic palette and paintbrush motif, creative swirls",
+        "Collectibles": "vintage collector's emblem with rare gem accents",
+        "Electronics": "circuit board patterns with digital elements",
+        "Fashion": "elegant fabric texture with haute couture elements",
+        "Jewelry": "diamond facets and precious metal shine",
+        "Luxury Goods": "premium leather texture with gold embossing",
+        "Memorabilia": "classic vintage stamp design with historical elements",
+        "Watches": "intricate clockwork gears and precision mechanisms",
+        "Wine & Spirits": "grape vine motifs with aged oak barrel texture",
+        "Other": "universal authenticity shield with holographic elements",
+      };
+
+      const categoryStyle = categoryPrompts[productCategory || "Other"] || categoryPrompts["Other"];
+      
+      const styleColors: Record<string, string> = {
+        "gold": "rich gold, amber, and bronze metallic tones with warm highlights",
+        "platinum": "silver, white gold, and cool platinum metallic tones with ice blue highlights", 
+        "copper": "copper, rose gold, and warm bronze metallic tones with orange highlights",
+      };
+      
+      const colorStyle = styleColors[sealStyle || "gold"] || styleColors["gold"];
+
+      const imagePrompt = `Create a premium circular authentication seal emblem for "${productName || "Authentic Product"}". 
+Style: ${categoryStyle}. 
+Colors: ${colorStyle}.
+The seal should be a 3D metallic embossed circular badge with intricate details, featuring a shield or crest in the center.
+Include subtle holographic rainbow shimmer effects around the edges.
+The word "AUTHENTIC" should be elegantly integrated into the design.
+Professional luxury brand quality, photorealistic metallic textures, dramatic lighting.
+Square 1:1 aspect ratio, centered composition on a transparent or dark background.`;
+
+      const imageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-image",
+          messages: [
+            { role: "user", content: imagePrompt }
+          ],
+          modalities: ["image", "text"],
+        }),
+      });
+
+      if (!imageResponse.ok) {
+        if (imageResponse.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (imageResponse.status === 402) {
+          return new Response(
+            JSON.stringify({ error: "AI usage limit reached. Please add credits." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        const errorText = await imageResponse.text();
+        console.error("Image generation error:", imageResponse.status, errorText);
+        throw new Error("Image generation failed");
+      }
+
+      const imageData = await imageResponse.json();
+      const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      
+      if (!imageUrl) {
+        throw new Error("No image generated");
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, result: { imageUrl }, action }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Handle text-based AI actions
     let systemPrompt = "";
     let userPrompt = "";
 

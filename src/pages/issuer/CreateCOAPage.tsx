@@ -102,6 +102,7 @@ export function CreateCOAPage() {
     confidence: string;
     factors: string[];
   } | null>(null);
+  const [aiSealImage, setAiSealImage] = useState<string | null>(null);
 
   const { createCertificate } = useCertificates();
   const { publicKey, connected } = useWallet();
@@ -112,8 +113,10 @@ export function CreateCOAPage() {
   const { uploadImages, uploading, uploadProgress } = useImageUpload();
   const {
     isLoading: aiLoading, 
+    isGeneratingImage,
     generateDescription, 
-    analyzeAuthenticity 
+    analyzeAuthenticity,
+    generateSealImage,
   } = useCertificateAI();
 
   const form = useForm<CreateCertificateForm>({
@@ -163,6 +166,17 @@ export function CreateCOAPage() {
         confidence: result.confidence,
         factors: result.factors,
       });
+    }
+  };
+
+  const handleGenerateAISeal = async () => {
+    const imageUrl = await generateSealImage({
+      productName: watchedProductName,
+      productCategory: watchedCategory,
+      sealStyle: selectedSeal,
+    });
+    if (imageUrl) {
+      setAiSealImage(imageUrl);
     }
   };
 
@@ -596,9 +610,17 @@ export function CreateCOAPage() {
                     {/* Seal Selection (only when no product image) */}
                     <SealSelector
                       selectedSeal={selectedSeal}
-                      onSealChange={setSelectedSeal}
+                      onSealChange={(seal) => {
+                        setSelectedSeal(seal);
+                        setAiSealImage(null); // Clear AI seal when preset selected
+                      }}
                       hasProductImage={productImages.length > 0}
                       disabled={createCertificate.isPending}
+                      onGenerateAISeal={handleGenerateAISeal}
+                      isGeneratingAISeal={isGeneratingImage}
+                      aiSealImage={aiSealImage}
+                      productName={watchedProductName}
+                      productCategory={watchedCategory}
                     />
 
                     {/* AI Authenticity Analysis */}
@@ -732,6 +754,7 @@ export function CreateCOAPage() {
                     theme={selectedTheme}
                     sealStyle={selectedSeal}
                     productImage={productImages[0]}
+                    aiSealImage={aiSealImage}
                     productName={watchedProductName || "Product Name"}
                     serialNumber={watchedSerialNumber || "COA-XXXXX"}
                     category={watchedCategory}

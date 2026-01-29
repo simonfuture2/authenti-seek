@@ -14,6 +14,7 @@ interface CertificatePreviewProps {
   theme: CertificateTheme;
   sealStyle: SealStyle;
   productImage?: string;
+  aiSealImage?: string | null;
   productName: string;
   serialNumber: string;
   issuerName?: string;
@@ -26,6 +27,7 @@ export function CertificatePreview({
   theme,
   sealStyle,
   productImage,
+  aiSealImage,
   productName,
   serialNumber,
   issuerName,
@@ -65,9 +67,11 @@ export function CertificatePreview({
     // Draw header
     drawHeader(ctx, size, themeConfig);
 
-    // Draw product image or seal
+    // Draw product image, AI seal, or preset seal
     if (productImage) {
       await drawProductImage(ctx, size, productImage, themeConfig);
+    } else if (aiSealImage) {
+      await drawAISealImage(ctx, size, aiSealImage, themeConfig);
     } else {
       drawSeal(ctx, size, sealConfig, themeConfig);
     }
@@ -88,7 +92,7 @@ export function CertificatePreview({
     setPreviewUrl(dataUrl);
     onImageGenerated?.(dataUrl);
     setIsGenerating(false);
-  }, [theme, sealStyle, productImage, productName, serialNumber, issuerName, category, onImageGenerated]);
+  }, [theme, sealStyle, productImage, aiSealImage, productName, serialNumber, issuerName, category, onImageGenerated]);
 
   useEffect(() => {
     if (productName || serialNumber) {
@@ -348,6 +352,50 @@ async function drawProductImage(
       ctx.roundRect(x, y, imgSize, imgSize, 10);
       ctx.clip();
       ctx.drawImage(img, x, y, imgSize, imgSize);
+      ctx.restore();
+
+      resolve();
+    };
+    img.onerror = () => resolve();
+    img.src = imageUrl;
+  });
+}
+
+async function drawAISealImage(
+  ctx: CanvasRenderingContext2D,
+  size: number,
+  imageUrl: string,
+  theme: ReturnType<typeof getTheme>
+) {
+  return new Promise<void>((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const sealSize = 280;
+      const x = (size - sealSize) / 2;
+      const y = 250;
+
+      // Draw glow effect
+      ctx.save();
+      ctx.shadowColor = theme.colors.primary;
+      ctx.shadowBlur = 40;
+      
+      // Draw circular clip for the seal
+      ctx.beginPath();
+      ctx.arc(x + sealSize / 2, y + sealSize / 2, sealSize / 2, 0, Math.PI * 2);
+      ctx.clip();
+      
+      // Draw the AI-generated seal image
+      ctx.drawImage(img, x, y, sealSize, sealSize);
+      ctx.restore();
+
+      // Draw decorative ring around the seal
+      ctx.save();
+      ctx.strokeStyle = theme.colors.primary;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(x + sealSize / 2, y + sealSize / 2, sealSize / 2 + 10, 0, Math.PI * 2);
+      ctx.stroke();
       ctx.restore();
 
       resolve();
