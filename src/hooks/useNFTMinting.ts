@@ -5,7 +5,7 @@ import { logError } from "@/lib/errorHandler";
 import {
   mintCertificateNFT,
   createNFTMetadataJson,
-  createDevnetMetadataUri,
+  createMetadataUri,
   MintNFTResult,
   MintingMode,
 } from "@/lib/metaplex";
@@ -90,9 +90,8 @@ export function useNFTMinting() {
             certificate.product_category || undefined
           );
 
-          // Create a short metadata URI for devnet
-          // In production, this would upload to Arweave/IPFS first
-          const metadataUri = createDevnetMetadataUri(certificate.serial_number);
+          // Create metadata URI pointing to our edge function
+          const metadataUri = createMetadataUri(certificate.serial_number);
 
           // Mint the NFT
           const result = await mintCertificateNFT(wallet, nftMetadata, metadataUri);

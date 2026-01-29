@@ -79,14 +79,12 @@ export function createNFTMetadataJson(
 }
 
 /**
- * Create a short URI for devnet testing
- * The URI field in Metaplex has a ~200 byte limit, so data URIs won't work
- * In production, upload to Arweave/IPFS and use that URI
+ * Create metadata URI pointing to our edge function
+ * This serves the NFT metadata JSON dynamically from our database
  */
-export function createDevnetMetadataUri(serialNumber: string): string {
-  // Use a short mock URI for devnet - in production this would be an Arweave/IPFS link
-  // The actual metadata is stored off-chain in the certificate record
-  return `https://authentiseal.app/api/nft/${serialNumber}`;
+export function createMetadataUri(serialNumber: string): string {
+  const supabaseProjectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  return `https://${supabaseProjectId}.supabase.co/functions/v1/nft-metadata/${serialNumber}`;
 }
 
 /**
