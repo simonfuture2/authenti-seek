@@ -56,6 +56,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { useCertificateAI } from "@/hooks/useCertificateAI";
+import { useCertificateImageUpload } from "@/hooks/useCertificateImageUpload";
 
 // Certificate theming components
 import { ThemeSelector } from "@/components/certificate/ThemeSelector";
@@ -118,6 +119,7 @@ export function CreateCOAPage() {
     analyzeAuthenticity,
     generateSealImage,
   } = useCertificateAI();
+  const { uploadCertificateImage, uploading: uploadingCertImage } = useCertificateImageUpload();
 
   const form = useForm<CreateCertificateForm>({
     resolver: zodResolver(createCertificateSchema),
@@ -196,20 +198,46 @@ export function CreateCOAPage() {
       metadata: {
         theme: selectedTheme,
         sealStyle: productImages.length === 0 ? selectedSeal : undefined,
-        certificateImageUrl: certificateImageUrl,
         authenticityScore: authenticityScore,
       },
     });
 
+    // Upload certificate image to storage if available
+    let storedImageUrl: string | null = null;
+    if (certificateImageUrl) {
+      storedImageUrl = await uploadCertificateImage(
+        certificateImageUrl,
+        result.id,
+        data.serial_number
+      );
+      
+      // Update certificate with stored image URL
+      if (storedImageUrl) {
+        await supabase
+          .from("certificates")
+          .update({ 
+            metadata: {
+              theme: selectedTheme,
+              sealStyle: productImages.length === 0 ? selectedSeal : undefined,
+              authenticityScore: authenticityScore,
+              certificateImageUrl: storedImageUrl,
+            }
+          })
+          .eq("id", result.id);
+      }
+    }
+
     // If user wants to store on-chain and wallet is connected
     if (storeOnChain && connected && publicKey) {
       const timestamp = Date.now();
+      
+      // Include the stored certificate image URL in on-chain metadata
       const onChainResult = await submitCertificate({
         serialNumber: data.serial_number,
         productName: data.product_name,
         issuerId: user?.id || "",
         timestamp,
-        metadataHash: result.id,
+        metadataHash: storedImageUrl || result.id, // Use image URL as metadata reference if available
       });
 
       if (onChainResult) {
@@ -221,6 +249,11 @@ export function CreateCOAPage() {
           .update({ solana_signature: onChainResult.signature })
           .eq("id", result.id);
       }
+    }
+
+    // Update local state with stored URL
+    if (storedImageUrl) {
+      setCertificateImageUrl(storedImageUrl);
     }
 
     setCreatedCert(result);
@@ -724,12 +757,12 @@ export function CreateCOAPage() {
                     <Button
                       type="submit"
                       className="w-full bg-solana-gradient hover:opacity-90"
-                      disabled={createCertificate.isPending || isSubmitting || uploading}
+                      disabled={createCertificate.isPending || isSubmitting || uploading || uploadingCertImage}
                     >
-                      {createCertificate.isPending || isSubmitting ? (
+                      {createCertificate.isPending || isSubmitting || uploadingCertImage ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          {isSubmitting ? "Storing On-Chain..." : "Creating..."}
+                          {uploadingCertImage ? "Uploading Certificate..." : isSubmitting ? "Storing On-Chain..." : "Creating..."}
                         </>
                       ) : (
                         <>
