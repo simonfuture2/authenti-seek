@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      certificate_metadata_versions: {
+        Row: {
+          certificate_id: string
+          change_description: string | null
+          change_type: Database["public"]["Enums"]["metadata_change_type"]
+          changed_at: string
+          changed_by: string | null
+          id: string
+          metadata_snapshot: Json
+          previous_version_id: string | null
+          version_number: number
+        }
+        Insert: {
+          certificate_id: string
+          change_description?: string | null
+          change_type: Database["public"]["Enums"]["metadata_change_type"]
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          metadata_snapshot: Json
+          previous_version_id?: string | null
+          version_number?: number
+        }
+        Update: {
+          certificate_id?: string
+          change_description?: string | null
+          change_type?: Database["public"]["Enums"]["metadata_change_type"]
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          metadata_snapshot?: Json
+          previous_version_id?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificate_metadata_versions_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificate_metadata_versions_previous_version_id_fkey"
+            columns: ["previous_version_id"]
+            isOneToOne: false
+            referencedRelation: "certificate_metadata_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       certificate_transfers: {
         Row: {
           certificate_id: string
@@ -271,6 +322,12 @@ export type Database = {
     Enums: {
       app_role: "issuer" | "verifier"
       certificate_status: "active" | "transferred" | "revoked"
+      metadata_change_type:
+        | "created"
+        | "updated"
+        | "transferred"
+        | "minted"
+        | "revoked"
       report_status: "pending" | "reviewed" | "resolved" | "dismissed"
     }
     CompositeTypes: {
@@ -401,6 +458,13 @@ export const Constants = {
     Enums: {
       app_role: ["issuer", "verifier"],
       certificate_status: ["active", "transferred", "revoked"],
+      metadata_change_type: [
+        "created",
+        "updated",
+        "transferred",
+        "minted",
+        "revoked",
+      ],
       report_status: ["pending", "reviewed", "resolved", "dismissed"],
     },
   },
