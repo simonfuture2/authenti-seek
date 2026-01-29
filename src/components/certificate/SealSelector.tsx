@@ -31,10 +31,6 @@ export function SealSelector({
 }: SealSelectorProps) {
   const seals = Object.values(SEAL_STYLES);
 
-  if (hasProductImage) {
-    return null; // Hide seal selector when product image is uploaded
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -42,7 +38,7 @@ export function SealSelector({
           <Shield className="h-4 w-4 text-muted-foreground" />
           <label className="text-sm font-medium">Authentication Seal</label>
         </div>
-        {onGenerateAISeal && (
+        {onGenerateAISeal && !hasProductImage && (
           <Button
             type="button"
             variant="outline"
@@ -67,15 +63,17 @@ export function SealSelector({
       </div>
       
       <p className="text-xs text-muted-foreground">
-        {aiSealImage 
-          ? "AI-generated seal created! Select a style below to use a preset instead."
-          : "Select a seal style or use AI to generate a unique seal based on your product."
+        {hasProductImage
+          ? "Select a seal style to display beneath your product image."
+          : aiSealImage 
+            ? "AI-generated seal created! Select a style below to use a preset instead."
+            : "Select a seal style or use AI to generate a unique seal based on your product."
         }
       </p>
 
-      {/* AI Generated Seal Preview */}
+      {/* AI Generated Seal Preview (only when no product image) */}
       <AnimatePresence>
-        {aiSealImage && (
+        {aiSealImage && !hasProductImage && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -109,7 +107,7 @@ export function SealSelector({
       {/* Preset Seal Options */}
       <div className="grid grid-cols-3 gap-3">
         {seals.map((seal) => {
-          const isSelected = selectedSeal === seal.id && !aiSealImage;
+          const isSelected = selectedSeal === seal.id && (!aiSealImage || hasProductImage);
           
           return (
             <motion.button
