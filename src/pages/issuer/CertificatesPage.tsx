@@ -17,6 +17,8 @@ import {
   Shield,
   Timer,
   AlertTriangle,
+  Wallet,
+  Loader2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -39,10 +41,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { IssuerDashboardLayout } from "@/components/layout/IssuerDashboardLayout";
 import { useCertificates, Certificate } from "@/hooks/useCertificates";
 import { useToast } from "@/hooks/use-toast";
+import { useSolanaTransaction } from "@/hooks/useSolanaTransaction";
 import { getExplorerUrl } from "@/lib/solana";
 import { cn } from "@/lib/utils";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
+import { WalletButton } from "@/components/wallet/WalletButton";
 
 type ViewMode = "grid" | "list";
 type StatusFilter = "all" | "active" | "transferred" | "revoked" | "chain_pending";
@@ -86,9 +90,86 @@ export default function CertificatesPage() {
   const [selectedCert, setSelectedCert] = useState<Certificate | null>(null);
   const [, setTick] = useState(0); // For triggering re-renders for countdown
   const [isMarkingPending, setIsMarkingPending] = useState(false);
+  const [isMinting, setIsMinting] = useState(false);
   
   const { certificates, isLoading, refetch } = useCertificates();
   const { toast } = useToast();
+  const { submitCertificate, isConnected, publicKey, isSubmitting } = useSolanaTransaction();
+
+  // Store certificate on-chain
+  const handleStoreOnChain = async (cert: Certificate) => {
+    if (!isConnected || !publicKey) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your Solana wallet to store on-chain.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (cert.solana_signature) {
+      toast({
+        title: "Already On-Chain",
+        description: "This certificate is already stored on the blockchain.",
+      });
+      return;
+    }
+
+    setIsMinting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Prepare on-chain data
+      const onChainData = {
+        serialNumber: cert.serial_number,
+        productName: cert.product_name,
+        issuerId: user.id,
+        timestamp: Date.now(),
+        metadataHash: cert.id,
+      };
+
+      // Submit to blockchain
+      const result = await submitCertificate(onChainData);
+      
+      if (result) {
+        // Update database with Solana signature
+        const { error } = await supabase
+          .from("certificates")
+          .update({
+            solana_signature: result.signature,
+            chain_pending_at: null, // Clear pending status
+            chain_pending_by: null,
+          })
+          .eq("id", cert.id)
+          .eq("issuer_id", user.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Stored On-Chain! 🎉",
+          description: "Certificate is now permanently recorded on Solana blockchain.",
+        });
+
+        refetch();
+        // Update selected cert to reflect the change
+        setSelectedCert(prev => prev ? { 
+          ...prev, 
+          solana_signature: result.signature,
+          chain_pending_at: null,
+          chain_pending_by: null,
+        } : null);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Minting Failed",
+        description: error.message || "Failed to store certificate on-chain",
+        variant: "destructive",
+      });
+    } finally {
+      setIsMinting(false);
+    }
+  };
 
   // Mark certificate as chain pending (issuer initiated)
   const handleMarkChainPending = async (cert: Certificate) => {
@@ -788,6 +869,22 @@ export default function CertificatesPage() {
                     </div>
                   )}
 
+                {/* Wallet Connection Section - show if certificate needs on-chain storage */}
+                {!selectedCert.solana_signature && (
+                  <div className="p-4 rounded-lg border border-border bg-muted/30 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Wallet className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">Solana Wallet</span>
+                    </div>
+                    <WalletButton />
+                    {isConnected && publicKey && (
+                      <p className="text-xs text-muted-foreground">
+                        Connected: {publicKey.toBase58().slice(0, 8)}...{publicKey.toBase58().slice(-8)}
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {/* Actions */}
                 <div className="flex flex-wrap gap-3">
                   <Button
@@ -797,6 +894,28 @@ export default function CertificatesPage() {
                   >
                     Close
                   </Button>
+                  
+                  {/* Store on Chain button - show for chain-pending or off-chain certificates */}
+                  {!selectedCert.solana_signature && (
+                    <Button
+                      variant="default"
+                      className="flex-1 min-w-[120px] bg-solana-gradient text-white border-0 hover:opacity-90"
+                      onClick={() => handleStoreOnChain(selectedCert)}
+                      disabled={isMinting || isSubmitting || !isConnected}
+                    >
+                      {isMinting || isSubmitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Minting...
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="h-4 w-4 mr-2" />
+                          {selectedCert.chain_pending_at ? "Mint Now (Chain Pending)" : "Store on Chain"}
+                        </>
+                      )}
+                    </Button>
+                  )}
                   
                   {/* Mark as Chain Pending button - show only if not on-chain and not already pending */}
                   {!selectedCert.solana_signature && !selectedCert.chain_pending_at && (
