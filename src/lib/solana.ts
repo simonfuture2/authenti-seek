@@ -19,6 +19,7 @@ export interface CertificateOnChainData {
   issuerId: string;
   timestamp: number;
   metadataHash: string;
+  nfcTagId?: string; // Optional NFC tag ID for physical verification
 }
 
 export interface OnChainResult {
@@ -69,13 +70,14 @@ export async function storeCertificateOnChain(
   // Create certificate hash
   const certificateHash = await hashCertificateData(certificateData);
 
-  // Create memo data with certificate info
+  // Create memo data with certificate info (including NFC tag if present)
   const memoData = JSON.stringify({
     type: "COA_CERTIFICATE",
-    version: "1.0",
+    version: "1.1",
     hash: certificateHash,
     serial: certificateData.serialNumber,
     timestamp: certificateData.timestamp,
+    ...(certificateData.nfcTagId && { nfc: certificateData.nfcTagId }),
   });
 
   // Create memo instruction

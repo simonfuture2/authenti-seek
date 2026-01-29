@@ -114,12 +114,16 @@ export function useNFTMinting() {
           return mintResult;
         } else {
           // Privacy memo mode (existing implementation)
+          // Extract NFC Tag ID from unique_identifiers if available
+          const uniqueIdentifiers = (certificate.unique_identifiers || {}) as Record<string, string>;
+          
           const onChainData: CertificateOnChainData = {
             serialNumber: certificate.serial_number,
             productName: certificate.product_name,
             issuerId,
             timestamp: Date.now(),
             metadataHash: certificate.id,
+            nfcTagId: uniqueIdentifiers.nfcTagId || undefined,
           };
 
           const result = await storeCertificateOnChain(wallet, onChainData);

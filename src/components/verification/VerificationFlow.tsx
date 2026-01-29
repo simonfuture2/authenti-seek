@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Camera,
@@ -13,6 +13,8 @@ import {
   Hash,
   Ruler,
   Scale,
+  Nfc,
+  Smartphone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +26,7 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { useImageUpload } from "@/hooks/useImageUpload";
+import { useNFCScanner, formatNFCTagId } from "@/hooks/useNFCScanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -66,10 +69,31 @@ export function VerificationFlow({ certificate, onComplete, onCancel }: Verifica
   const { user } = useAuth();
   const { toast } = useToast();
   const { uploadImages, uploading, uploadProgress } = useImageUpload();
+  const { isSupported: nfcSupported, isScanning: nfcScanning, error: nfcError, startScan } = useNFCScanner();
 
   // Parse JSONB fields safely
   const physicalAttributes = (certificate.physical_attributes || {}) as Record<string, string>;
   const uniqueIdentifiers = (certificate.unique_identifiers || {}) as Record<string, string>;
+
+  // Handle NFC scan
+  const handleNFCScan = async () => {
+    try {
+      const scannedId = await startScan();
+      if (scannedId) {
+        setReportedIdentifiers((prev) => ({ ...prev, nfcTagId: scannedId }));
+        toast({
+          title: "NFC Tag Scanned",
+          description: `Tag ID: ${formatNFCTagId(scannedId)}`,
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "NFC Scan Failed",
+        description: nfcError || "Could not read NFC tag",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleFilesSelected = async (files: File[]) => {
     const urls = await uploadImages(files);
@@ -303,20 +327,52 @@ export function VerificationFlow({ certificate, onComplete, onCancel }: Verifica
                 {/* NFC Tag ID */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label>NFC Tag ID (if applicable)</Label>
+                    <Label className="flex items-center gap-1">
+                      <Nfc className="h-4 w-4" />
+                      NFC Tag ID
+                    </Label>
                     {uniqueIdentifiers.nfcTagId && (
                       <span className="text-xs text-muted-foreground">
-                        Expected: {uniqueIdentifiers.nfcTagId}
+                        Expected: {formatNFCTagId(uniqueIdentifiers.nfcTagId)}
                       </span>
                     )}
                   </div>
-                  <Input
-                    placeholder="Scan or enter NFC tag ID"
-                    value={reportedIdentifiers.nfcTagId || ""}
-                    onChange={(e) =>
-                      setReportedIdentifiers((prev) => ({ ...prev, nfcTagId: e.target.value }))
-                    }
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Scan or enter NFC tag ID"
+                      value={reportedIdentifiers.nfcTagId || ""}
+                      onChange={(e) =>
+                        setReportedIdentifiers((prev) => ({ ...prev, nfcTagId: e.target.value }))
+                      }
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant={nfcSupported ? "secondary" : "outline"}
+                      size="icon"
+                      onClick={handleNFCScan}
+                      disabled={!nfcSupported || nfcScanning}
+                      title={nfcSupported ? "Scan NFC Tag" : "NFC not supported on this device"}
+                    >
+                      {nfcScanning ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Nfc className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  {!nfcSupported && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Smartphone className="h-3 w-3" />
+                      NFC scanning requires Chrome on Android with HTTPS
+                    </p>
+                  )}
+                  {nfcScanning && (
+                    <p className="text-xs text-primary animate-pulse flex items-center gap-1">
+                      <Nfc className="h-3 w-3" />
+                      Hold your device near the NFC tag...
+                    </p>
+                  )}
                 </div>
 
                 {/* Batch Code */}
