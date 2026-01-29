@@ -16,6 +16,14 @@ interface NFTMetadata {
     trait_type: string;
     value: string;
   }>;
+  properties?: {
+    version_history?: Array<{
+      version: number;
+      change_type: string;
+      description: string;
+      timestamp: string;
+    }>;
+  };
 }
 
 Deno.serve(async (req) => {
@@ -87,6 +95,13 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Fetch version history
+    const { data: versions } = await supabase
+      .from("certificate_metadata_versions")
+      .select("version_number, change_type, change_description, changed_at")
+      .eq("certificate_id", certificate.id)
+      .order("version_number", { ascending: true });
+
     // Build NFT metadata following Metaplex standard
     const nftMetadata: NFTMetadata = {
       name: `COA: ${certificate.product_name}`.slice(0, 32),
@@ -111,6 +126,7 @@ Deno.serve(async (req) => {
         { trait_type: "Status", value: certificate.status },
         { trait_type: "Certificate Type", value: "Authenticity" },
         { trait_type: "Verification", value: "AuthentiSeal Verified" },
+        { trait_type: "Version", value: String(versions?.length || 1) },
       ],
     };
 
@@ -130,12 +146,24 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Add version history to properties
+    if (versions && versions.length > 0) {
+      nftMetadata.properties = {
+        version_history: versions.map((v) => ({
+          version: v.version_number,
+          change_type: v.change_type,
+          description: v.change_description || "",
+          timestamp: v.changed_at,
+        })),
+      };
+    }
+
     return new Response(JSON.stringify(nftMetadata), {
       status: 200,
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json",
-        "Cache-Control": "public, max-age=60", // Cache for 1 minute
+        "Cache-Control": "public, max-age=60",
       },
     });
   } catch (error) {
