@@ -51,6 +51,8 @@ export type Database = {
       }
       certificates: {
         Row: {
+          chain_pending_at: string | null
+          chain_pending_by: string | null
           created_at: string
           current_owner_wallet: string | null
           id: string
@@ -69,6 +71,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          chain_pending_at?: string | null
+          chain_pending_by?: string | null
           created_at?: string
           current_owner_wallet?: string | null
           id?: string
@@ -87,6 +91,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          chain_pending_at?: string | null
+          chain_pending_by?: string | null
           created_at?: string
           current_owner_wallet?: string | null
           id?: string
