@@ -79,13 +79,14 @@ export function createNFTMetadataJson(
 }
 
 /**
- * Create a data URI from metadata (for development/testing)
+ * Create a short URI for devnet testing
+ * The URI field in Metaplex has a ~200 byte limit, so data URIs won't work
  * In production, upload to Arweave/IPFS and use that URI
  */
-export function metadataToDataUri(metadata: NFTMetadata): string {
-  const jsonString = JSON.stringify(metadata);
-  const base64 = btoa(unescape(encodeURIComponent(jsonString)));
-  return `data:application/json;base64,${base64}`;
+export function createDevnetMetadataUri(serialNumber: string): string {
+  // Use a short mock URI for devnet - in production this would be an Arweave/IPFS link
+  // The actual metadata is stored off-chain in the certificate record
+  return `https://authentiseal.app/api/nft/${serialNumber}`;
 }
 
 /**
