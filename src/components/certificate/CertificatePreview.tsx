@@ -415,17 +415,17 @@ async function drawProductImage(
   });
 }
 
-// Draw dual seals at bottom left and right corners
+// Draw dual seals at bottom left and right corners - above the footer
 function drawSealBelowImage(
   ctx: CanvasRenderingContext2D,
   size: number,
   seal: ReturnType<typeof getSeal>,
   theme: ReturnType<typeof getTheme>
 ) {
-  const radius = 42; // Slightly smaller for dual placement
-  const bottomY = size - 120; // Position near bottom
-  const leftX = 100; // Left corner
-  const rightX = size - 100; // Right corner
+  const radius = 35; // Compact size for corner placement
+  const bottomY = size - 160; // Position above footer area
+  const leftX = 85; // Left corner
+  const rightX = size - 85; // Right corner
 
   // Draw both seals
   [leftX, rightX].forEach((centerX) => {
@@ -434,12 +434,12 @@ function drawSealBelowImage(
     // Foil-like outer glow effect
     for (let i = 2; i >= 0; i--) {
       ctx.shadowColor = seal.colors.primary;
-      ctx.shadowBlur = 18 + i * 4;
-      ctx.globalAlpha = 0.35 + i * 0.18;
+      ctx.shadowBlur = 14 + i * 3;
+      ctx.globalAlpha = 0.35 + i * 0.15;
       ctx.beginPath();
-      ctx.arc(centerX, bottomY, radius + i * 2, 0, Math.PI * 2);
+      ctx.arc(centerX, bottomY, radius + i * 1.5, 0, Math.PI * 2);
       ctx.strokeStyle = seal.colors.highlight;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.5;
       ctx.stroke();
     }
     ctx.globalAlpha = 1;
@@ -447,8 +447,8 @@ function drawSealBelowImage(
 
     // Gradient for seal with metallic foil effect
     const gradient = ctx.createRadialGradient(
-      centerX - 10,
-      bottomY - 10,
+      centerX - 8,
+      bottomY - 8,
       0,
       centerX,
       bottomY,
@@ -462,7 +462,7 @@ function drawSealBelowImage(
 
     // Main seal circle with glow
     ctx.shadowColor = seal.colors.primary;
-    ctx.shadowBlur = 16;
+    ctx.shadowBlur = 12;
     ctx.beginPath();
     ctx.arc(centerX, bottomY, radius, 0, Math.PI * 2);
     ctx.fillStyle = gradient;
@@ -471,28 +471,28 @@ function drawSealBelowImage(
 
     // Inner decorative ring
     ctx.strokeStyle = seal.colors.highlight;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(centerX, bottomY, radius - 5, 0, Math.PI * 2);
+    ctx.arc(centerX, bottomY, radius - 4, 0, Math.PI * 2);
     ctx.stroke();
 
     // Inner ring 2
     ctx.strokeStyle = seal.colors.shadow;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 0.8;
     ctx.beginPath();
-    ctx.arc(centerX, bottomY, radius - 9, 0, Math.PI * 2);
+    ctx.arc(centerX, bottomY, radius - 7, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Draw curved text "AUTHENTICATED BY W3MCT" around the top of seal
+    // Draw curved text "W3MCT" around the top of seal (simplified for size)
     const textColor = seal.id === "platinum" ? "#1a1a2e" : "#ffffff";
     ctx.fillStyle = textColor;
-    ctx.font = `bold 7px ${theme.fonts.body}`;
+    ctx.font = `bold 5px ${theme.fonts.body}`;
     ctx.textAlign = "center";
     
-    const text = "AUTHENTICATED BY W3MCT";
-    const textRadius = radius - 12;
-    const startAngle = -Math.PI * 0.8;
-    const endAngle = -Math.PI * 0.2;
+    const text = "AUTHENTICATED";
+    const textRadius = radius - 10;
+    const startAngle = -Math.PI * 0.85;
+    const endAngle = -Math.PI * 0.15;
     const anglePerChar = (endAngle - startAngle) / text.length;
     
     ctx.save();
@@ -509,15 +509,15 @@ function drawSealBelowImage(
     ctx.restore();
 
     // Shield icon in center
-    ctx.font = "18px Arial";
+    ctx.font = "14px Arial";
     ctx.textAlign = "center";
     ctx.fillStyle = textColor;
-    ctx.fillText("🛡️", centerX, bottomY + 5);
+    ctx.fillText("🛡️", centerX, bottomY + 3);
 
-    // "VERIFIED" text at bottom of seal
-    ctx.font = `bold 7px ${theme.fonts.body}`;
+    // "W3MCT" text at bottom of seal
+    ctx.font = `bold 6px ${theme.fonts.body}`;
     ctx.fillStyle = textColor;
-    ctx.fillText("VERIFIED", centerX, bottomY + 22);
+    ctx.fillText("W3MCT", centerX, bottomY + 18);
 
     ctx.restore();
   });
@@ -642,12 +642,12 @@ function drawDetails(
   ctx.save();
   ctx.textAlign = "center";
 
-  const startY = 660;
+  const startY = 590; // Moved up to make room for seals
 
   // Product name with subtle shadow for elegance
   ctx.shadowColor = theme.colors.primary;
   ctx.shadowBlur = 4;
-  ctx.font = `bold 34px ${theme.fonts.heading}`;
+  ctx.font = `bold 30px ${theme.fonts.heading}`;
   ctx.fillStyle = theme.colors.text;
   ctx.fillText(details.productName || "Product Name", size / 2, startY);
   ctx.shadowBlur = 0;
@@ -661,27 +661,27 @@ function drawDetails(
   ctx.strokeStyle = dividerGradient;
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(size / 2 - 120, startY + 15);
-  ctx.lineTo(size / 2 + 120, startY + 15);
+  ctx.moveTo(size / 2 - 120, startY + 12);
+  ctx.lineTo(size / 2 + 120, startY + 12);
   ctx.stroke();
 
   // Serial number
-  ctx.font = `16px ${theme.fonts.body}`;
+  ctx.font = `14px ${theme.fonts.body}`;
   ctx.fillStyle = theme.colors.textMuted;
-  ctx.fillText(`Serial: ${details.serialNumber || "---"}`, size / 2, startY + 40);
+  ctx.fillText(`Serial: ${details.serialNumber || "---"}`, size / 2, startY + 32);
 
   // Category
   if (details.category) {
-    ctx.fillText(`Category: ${details.category}`, size / 2, startY + 65);
+    ctx.fillText(`Category: ${details.category}`, size / 2, startY + 52);
   }
 
   // Issuer with emphasis
   if (details.issuerName) {
     ctx.shadowColor = theme.colors.primary;
     ctx.shadowBlur = 3;
-    ctx.font = `bold 18px ${theme.fonts.body}`;
+    ctx.font = `bold 16px ${theme.fonts.body}`;
     ctx.fillStyle = theme.colors.primary;
-    ctx.fillText(`Issued by: ${details.issuerName}`, size / 2, startY + 95);
+    ctx.fillText(`Issued by: ${details.issuerName}`, size / 2, startY + (details.category ? 75 : 55));
     ctx.shadowBlur = 0;
   }
 
@@ -696,30 +696,30 @@ function drawFooter(
   ctx.save();
   ctx.textAlign = "center";
 
-  // Date with elegant styling
+  // Date with elegant styling - positioned between seals
   const date = new Date().toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
-  ctx.font = `13px ${theme.fonts.body}`;
+  ctx.font = `12px ${theme.fonts.body}`;
   ctx.fillStyle = theme.colors.textMuted;
-  ctx.fillText(date, size / 2, size - 90);
+  ctx.fillText(date, size / 2, size - 95);
 
   // Blockchain badge with subtle glow
   ctx.shadowColor = theme.colors.primary;
-  ctx.shadowBlur = 6;
-  ctx.font = `12px ${theme.fonts.body}`;
+  ctx.shadowBlur = 5;
+  ctx.font = `11px ${theme.fonts.body}`;
   ctx.fillStyle = theme.colors.primary;
-  ctx.fillText("🔗 Verified on Solana Blockchain", size / 2, size - 65);
+  ctx.fillText("🔗 Verified on Solana Blockchain", size / 2, size - 75);
   ctx.shadowBlur = 0;
 
   // AuthentiSeal branding with glow
   ctx.shadowColor = theme.colors.primary;
-  ctx.shadowBlur = 8;
-  ctx.font = `bold 18px ${theme.fonts.heading}`;
+  ctx.shadowBlur = 6;
+  ctx.font = `bold 16px ${theme.fonts.heading}`;
   ctx.fillStyle = theme.colors.primary;
-  ctx.fillText("AuthentiSeal", size / 2, size - 38);
+  ctx.fillText("AuthentiSeal", size / 2, size - 52);
   ctx.shadowBlur = 0;
 
   ctx.restore();
