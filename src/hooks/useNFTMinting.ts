@@ -90,8 +90,8 @@ export function useNFTMinting() {
             certificate.product_category || undefined
           );
 
-          // Create metadata URI pointing to our edge function
-          const metadataUri = createMetadataUri(certificate.serial_number);
+          // Create metadata URI pointing to our edge function (async)
+          const metadataUri = await createMetadataUri(certificate.serial_number);
 
           // Mint the NFT
           const result = await mintCertificateNFT(wallet, nftMetadata, metadataUri);

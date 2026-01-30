@@ -6,6 +6,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Rate limiting: Simple in-memory store (resets on function cold start)
+const requestCounts = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 30;
+
 interface NFTMetadata {
   name: string;
   symbol: string;
@@ -26,6 +31,37 @@ interface NFTMetadata {
   };
 }
 
+/**
+ * Simple rate limiting check
+ */
+function checkRateLimit(clientIp: string): boolean {
+  const now = Date.now();
+  const record = requestCounts.get(clientIp);
+  
+  if (!record || now > record.resetTime) {
+    requestCounts.set(clientIp, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+  
+  if (record.count >= MAX_REQUESTS_PER_WINDOW) {
+    return false;
+  }
+  
+  record.count++;
+  return true;
+}
+
+/**
+ * Generate hash for serial number lookup (must match client-side implementation)
+ */
+async function hashSerialNumber(serialNumber: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(serialNumber + "authenti-seal-salt-v1");
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -33,14 +69,29 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Extract serial number from URL path
+    // Rate limiting
+    const clientIp = req.headers.get("x-forwarded-for") || 
+                     req.headers.get("cf-connecting-ip") || 
+                     "unknown";
+    
+    if (!checkRateLimit(clientIp)) {
+      return new Response(
+        JSON.stringify({ error: "Too many requests. Please try again later." }),
+        {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Extract lookup key from URL path (either hash or serial number)
     const url = new URL(req.url);
     const pathParts = url.pathname.split("/");
-    const serialNumber = pathParts[pathParts.length - 1];
+    const lookupKey = pathParts[pathParts.length - 1];
 
-    if (!serialNumber || serialNumber === "nft-metadata") {
+    if (!lookupKey || lookupKey === "nft-metadata") {
       return new Response(
-        JSON.stringify({ error: "Serial number is required" }),
+        JSON.stringify({ error: "Certificate identifier is required" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -48,19 +99,55 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Initialize Supabase client
+    // Validate lookup key format (should be alphanumeric, max 64 chars)
+    if (!/^[a-zA-Z0-9-]+$/.test(lookupKey) || lookupKey.length > 64) {
+      return new Response(
+        JSON.stringify({ error: "Invalid identifier format" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Initialize Supabase client with ANON key for RLS-protected access
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    // Fetch certificate by serial number
-    const { data: certificate, error } = await supabase
-      .from("certificates")
+    // Try to find certificate by serial number first
+    let certificate = null;
+    
+    // Query the public view (respects RLS and hides sensitive fields)
+    const { data: certBySerial } = await supabase
+      .from("certificates_public")
       .select("*")
-      .eq("serial_number", serialNumber)
-      .single();
+      .eq("serial_number", lookupKey)
+      .maybeSingle();
+    
+    if (certBySerial) {
+      certificate = certBySerial;
+    } else {
+      // If not found by serial, search all certificates and match by hash
+      // This handles the hashed URL approach
+      const { data: allCerts } = await supabase
+        .from("certificates_public")
+        .select("*")
+        .not("solana_signature", "is", null) // Only minted certificates
+        .limit(100);
+      
+      if (allCerts) {
+        for (const cert of allCerts) {
+          const certHash = await hashSerialNumber(cert.serial_number);
+          if (certHash === lookupKey) {
+            certificate = cert;
+            break;
+          }
+        }
+      }
+    }
 
-    if (error || !certificate) {
+    if (!certificate) {
       return new Response(
         JSON.stringify({ error: "Certificate not found" }),
         {
@@ -81,28 +168,22 @@ Deno.serve(async (req) => {
       certificate.product_images?.[0] ||
       "";
 
-    // Fetch issuer profile for company name
+    // Fetch issuer profile for company name (using public view)
     let issuerName = "AuthentiSeal Verified Issuer";
     if (certificate.issuer_id) {
       const { data: profile } = await supabase
         .from("profiles")
         .select("company_name, display_name")
         .eq("user_id", certificate.issuer_id)
-        .single();
+        .maybeSingle();
 
       if (profile) {
         issuerName = profile.company_name || profile.display_name || issuerName;
       }
     }
 
-    // Fetch version history
-    const { data: versions } = await supabase
-      .from("certificate_metadata_versions")
-      .select("version_number, change_type, change_description, changed_at")
-      .eq("certificate_id", certificate.id)
-      .order("version_number", { ascending: true });
-
     // Build NFT metadata following Metaplex standard
+    // Note: Minimal sensitive data exposure
     const nftMetadata: NFTMetadata = {
       name: `COA: ${certificate.product_name}`.slice(0, 32),
       symbol: "ASEAL",
@@ -110,7 +191,7 @@ Deno.serve(async (req) => {
         certificate.product_description ||
         `Certificate of Authenticity for ${certificate.product_name}`,
       image: certificateImageUrl,
-      external_url: `https://authenti-seek.lovable.app/verify/${serialNumber}`,
+      external_url: `https://authenti-seek.lovable.app/verify?serial=${encodeURIComponent(certificate.serial_number)}`,
       attributes: [
         { trait_type: "Serial Number", value: certificate.serial_number },
         { trait_type: "Product Name", value: certificate.product_name },
@@ -126,11 +207,10 @@ Deno.serve(async (req) => {
         { trait_type: "Status", value: certificate.status },
         { trait_type: "Certificate Type", value: "Authenticity" },
         { trait_type: "Verification", value: "AuthentiSeal Verified" },
-        { trait_type: "Version", value: String(versions?.length || 1) },
       ],
     };
 
-    // Add current owner if transferred
+    // Add current owner if transferred (wallet address is already public on-chain)
     if (certificate.current_owner_wallet) {
       nftMetadata.attributes.push({
         trait_type: "Current Owner",
@@ -138,32 +218,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Add on-chain signature if minted
-    if (certificate.solana_signature) {
-      nftMetadata.attributes.push({
-        trait_type: "Solana Signature",
-        value: certificate.solana_signature,
-      });
-    }
-
-    // Add version history to properties
-    if (versions && versions.length > 0) {
-      nftMetadata.properties = {
-        version_history: versions.map((v) => ({
-          version: v.version_number,
-          change_type: v.change_type,
-          description: v.change_description || "",
-          timestamp: v.changed_at,
-        })),
-      };
-    }
+    // Note: Solana signature intentionally NOT included in metadata
+    // - It's already available on-chain via the NFT's mint transaction
+    // - Including it here would be redundant and could aid enumeration
 
     return new Response(JSON.stringify(nftMetadata), {
       status: 200,
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json",
-        "Cache-Control": "public, max-age=60",
+        "Cache-Control": "public, max-age=300", // Cache for 5 minutes
       },
     });
   } catch (error) {

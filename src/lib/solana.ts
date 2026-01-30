@@ -29,33 +29,41 @@ export interface OnChainResult {
 }
 
 /**
- * Create a SHA-256 hash of the certificate data
+ * Hash a string using SHA-256 via Web Crypto API
+ * Returns hex string truncated to specified length
+ */
+async function sha256Hash(input: string, truncateLength: number = 32): Promise<string> {
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(input);
+  // Cast to unknown first to satisfy TypeScript strict mode
+  const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", dataBuffer.buffer as unknown as BufferSource);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return hashHex.slice(0, truncateLength);
+}
+
+/**
+ * Create a cryptographically secure SHA-256 hash of the certificate data
+ * Uses Web Crypto API for security - 128-bit output for compactness
  */
 export async function hashCertificateData(data: CertificateOnChainData): Promise<string> {
+  // Create a deterministic, alphabetically-ordered data string for consistent hashing
+  // Keys are shortened to minimize on-chain footprint
   const dataString = JSON.stringify({
-    serial: data.serialNumber,
-    product: data.productName,
-    issuer: data.issuerId,
-    timestamp: data.timestamp,
-    meta: data.metadataHash,
+    i: data.issuerId,
+    m: data.metadataHash,
+    n: data.nfcTagId || "",
+    p: data.productName,
+    s: data.serialNumber,
+    t: data.timestamp,
   });
   
-  // Use a simpler hashing approach that works in browser
-  let hash = 0;
-  for (let i = 0; i < dataString.length; i++) {
-    const char = dataString.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  
-  // Convert to hex and pad with timestamp for uniqueness
-  const hashHex = Math.abs(hash).toString(16).padStart(8, "0");
-  const timestampHex = data.timestamp.toString(16);
-  return `${hashHex}${timestampHex}`;
+  return sha256Hash(dataString, 32);
 }
 
 /**
  * Store certificate hash on Solana blockchain using Memo program
+ * Uses minimal data format to reduce exposure and on-chain footprint
  */
 export async function storeCertificateOnChain(
   wallet: WalletContextState,
@@ -67,18 +75,22 @@ export async function storeCertificateOnChain(
 
   const connection = new Connection(SOLANA_NETWORK, "confirmed");
 
-  // Create certificate hash
+  // Create certificate hash using cryptographically secure SHA-256
   const certificateHash = await hashCertificateData(certificateData);
 
-  // Create memo data with certificate info (including NFC tag if present)
-  const memoData = JSON.stringify({
-    type: "COA_CERTIFICATE",
-    version: "1.1",
-    hash: certificateHash,
-    serial: certificateData.serialNumber,
-    timestamp: certificateData.timestamp,
-    ...(certificateData.nfcTagId && { nfc: certificateData.nfcTagId }),
-  });
+  // Build minimal memo data - only hash is needed for verification
+  // Using short keys to minimize on-chain footprint and limit fingerprinting
+  const memoPayload: Record<string, string> = {
+    t: "AS", // Type: AuthentiSeal (shortened to prevent fingerprinting)
+    h: certificateHash,
+  };
+
+  // Add NFC hash if present (hashed for privacy protection)
+  if (certificateData.nfcTagId) {
+    memoPayload.n = await sha256Hash(certificateData.nfcTagId, 16);
+  }
+
+  const memoData = JSON.stringify(memoPayload);
 
   // Create memo instruction
   const memoInstruction = new TransactionInstruction({
@@ -121,6 +133,7 @@ export async function storeCertificateOnChain(
 
 /**
  * Verify certificate hash on Solana blockchain
+ * Returns sanitized data - only verification status and minimal info
  */
 export async function verifyCertificateOnChain(
   signature: string,
@@ -161,7 +174,24 @@ export async function verifyCertificateOnChain(
     let parsedData: Record<string, unknown>;
     
     try {
-      parsedData = JSON.parse(memoDataString);
+      const rawData = JSON.parse(memoDataString);
+      
+      // Handle both new minimal format (t: "AS") and legacy format (type: "COA_CERTIFICATE")
+      if (rawData.t === "AS") {
+        parsedData = {
+          type: "COA_CERTIFICATE",
+          hash: rawData.h,
+          hasNfc: !!rawData.n,
+        };
+      } else if (rawData.type === "COA_CERTIFICATE") {
+        // Legacy format compatibility
+        parsedData = {
+          type: rawData.type,
+          hash: rawData.hash,
+        };
+      } else {
+        parsedData = { raw: memoDataString };
+      }
     } catch {
       parsedData = { raw: memoDataString };
     }
@@ -171,9 +201,14 @@ export async function verifyCertificateOnChain(
       ? parsedData.hash === expectedHash 
       : parsedData.type === "COA_CERTIFICATE";
 
+    // Return sanitized data - only include verification status
+    // Do NOT expose raw hash or internal data structures
     return {
       verified,
-      onChainData: parsedData,
+      onChainData: { 
+        verified,
+        recordFound: true,
+      },
       blockTime: tx.blockTime,
       slot: tx.slot,
     };
