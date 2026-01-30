@@ -56,6 +56,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { useCertificateAI } from "@/hooks/useCertificateAI";
+import { useCredits } from "@/hooks/useCredits";
 import { useCertificateImageUpload } from "@/hooks/useCertificateImageUpload";
 
 // Certificate theming components
@@ -135,6 +136,10 @@ export function CreateCOAPage() {
     generateSealImage,
   } = useCertificateAI();
   const { uploadCertificateImage, uploading: uploadingCertImage } = useCertificateImageUpload();
+  const { credits, refetchCredits } = useCredits();
+  
+  const AI_SEAL_CREDIT_COST = 0.5;
+  const hasEnoughCreditsForSeal = (credits?.balance ?? 0) >= AI_SEAL_CREDIT_COST;
 
   const form = useForm<CreateCertificateForm>({
     resolver: zodResolver(createCertificateSchema),
@@ -187,13 +192,55 @@ export function CreateCOAPage() {
   };
 
   const handleGenerateAISeal = async () => {
+    if (!hasEnoughCreditsForSeal) {
+      toast({
+        title: "Insufficient Credits",
+        description: `AI seal generation requires ${AI_SEAL_CREDIT_COST} credits. Please purchase more credits.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Deduct credits for AI seal
+    const { data: deductResult, error: deductError } = await supabase
+      .rpc("deduct_credits", {
+        p_user_id: user!.id,
+        p_amount: AI_SEAL_CREDIT_COST,
+        p_transaction_type: "certificate_creation",
+        p_description: `AI seal generation for ${watchedProductName || "certificate"}`,
+      });
+    
+    if (deductError || !deductResult?.[0]?.success) {
+      toast({
+        title: "Credit Deduction Failed",
+        description: deductResult?.[0]?.message || "Failed to deduct credits for AI seal.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const imageUrl = await generateSealImage({
       productName: watchedProductName,
       productCategory: watchedCategory,
       sealStyle: selectedSeal,
     });
+    
     if (imageUrl) {
       setAiSealImage(imageUrl);
+      refetchCredits();
+      toast({
+        title: "AI Seal Generated",
+        description: `${AI_SEAL_CREDIT_COST} credits deducted. Remaining balance: ${deductResult[0].new_balance} credits.`,
+      });
+    } else {
+      // Refund credits if generation failed
+      await supabase.rpc("add_credits", {
+        p_user_id: user!.id,
+        p_amount: AI_SEAL_CREDIT_COST,
+        p_payment_method: "sol",
+        p_description: "Refund: AI seal generation failed",
+      });
+      refetchCredits();
     }
   };
 
@@ -685,7 +732,7 @@ export function CreateCOAPage() {
                       disabled={createCertificate.isPending}
                     />
 
-                    {/* Seal Selection (only when no product image) */}
+                    {/* Seal Selection */}
                     <SealSelector
                       selectedSeal={selectedSeal}
                       onSealChange={(seal) => {
@@ -699,6 +746,8 @@ export function CreateCOAPage() {
                       aiSealImage={aiSealImage}
                       productName={watchedProductName}
                       productCategory={watchedCategory}
+                      creditCost={AI_SEAL_CREDIT_COST}
+                      hasEnoughCredits={hasEnoughCreditsForSeal}
                     />
 
                     {/* AI Authenticity Analysis */}

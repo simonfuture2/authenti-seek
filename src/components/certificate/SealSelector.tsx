@@ -16,6 +16,9 @@ interface SealSelectorProps {
   aiSealImage?: string | null;
   productName?: string;
   productCategory?: string;
+  // Credit info
+  creditCost?: number;
+  hasEnoughCredits?: boolean;
 }
 
 export function SealSelector({
@@ -28,6 +31,8 @@ export function SealSelector({
   aiSealImage,
   productName,
   productCategory,
+  creditCost = 0.5,
+  hasEnoughCredits = true,
 }: SealSelectorProps) {
   const seals = Object.values(SEAL_STYLES);
 
@@ -38,14 +43,15 @@ export function SealSelector({
           <Shield className="h-4 w-4 text-muted-foreground" />
           <label className="text-sm font-medium">Authentication Seal</label>
         </div>
-        {onGenerateAISeal && !hasProductImage && (
+        {onGenerateAISeal && (
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={onGenerateAISeal}
-            disabled={isGeneratingAISeal || disabled || !productName}
+            disabled={isGeneratingAISeal || disabled || !productName || !hasEnoughCredits}
             className="h-7 text-xs gap-1 border-primary/30 hover:border-primary hover:bg-primary/5"
+            title={!hasEnoughCredits ? "Not enough credits" : undefined}
           >
             {isGeneratingAISeal ? (
               <>
@@ -55,7 +61,7 @@ export function SealSelector({
             ) : (
               <>
                 <Sparkles className="h-3 w-3" />
-                AI Generate
+                AI Seal ({creditCost} credits)
               </>
             )}
           </Button>
