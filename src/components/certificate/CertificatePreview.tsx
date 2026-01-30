@@ -231,22 +231,49 @@ function drawBorder(
   size: number,
   theme: ReturnType<typeof getTheme>
 ) {
-  const padding = 40;
-  const innerPadding = 60;
+  const padding = 35;
+  const innerPadding = 55;
 
   ctx.save();
 
+  // Draw outer foil glow effect for all themes
+  const glowGradient = ctx.createLinearGradient(0, 0, size, size);
+  glowGradient.addColorStop(0, theme.colors.primary);
+  glowGradient.addColorStop(0.25, theme.colors.accent || theme.colors.primary);
+  glowGradient.addColorStop(0.5, theme.colors.primary);
+  glowGradient.addColorStop(0.75, theme.colors.secondary);
+  glowGradient.addColorStop(1, theme.colors.primary);
+
+  // Multi-layer foil glow effect
+  for (let i = 3; i >= 0; i--) {
+    ctx.shadowColor = theme.colors.primary;
+    ctx.shadowBlur = 25 + i * 8;
+    ctx.strokeStyle = glowGradient;
+    ctx.lineWidth = 4 - i * 0.5;
+    ctx.globalAlpha = 0.3 + i * 0.15;
+    ctx.strokeRect(padding - i * 2, padding - i * 2, size - (padding - i * 2) * 2, size - (padding - i * 2) * 2);
+  }
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+
   if (theme.borderStyle === "ornate") {
-    // Double ornate border
-    ctx.strokeStyle = theme.colors.border;
-    ctx.lineWidth = 4;
+    // Double ornate border with foil shine
+    ctx.strokeStyle = glowGradient;
+    ctx.lineWidth = 5;
+    ctx.shadowColor = theme.colors.primary;
+    ctx.shadowBlur = 15;
     ctx.strokeRect(padding, padding, size - padding * 2, size - padding * 2);
+    
+    ctx.shadowBlur = 8;
     ctx.lineWidth = 2;
     ctx.strokeRect(innerPadding, innerPadding, size - innerPadding * 2, size - innerPadding * 2);
+    ctx.shadowBlur = 0;
 
-    // Corner ornaments
-    const cornerSize = 30;
-    ctx.fillStyle = theme.colors.primary;
+    // Elegant corner ornaments with glow
+    const cornerSize = 35;
+    ctx.fillStyle = glowGradient;
+    ctx.shadowColor = theme.colors.primary;
+    ctx.shadowBlur = 12;
     [
       [padding, padding],
       [size - padding - cornerSize, padding],
@@ -260,37 +287,57 @@ function drawBorder(
       ctx.closePath();
       ctx.fill();
     });
+    ctx.shadowBlur = 0;
   } else if (theme.borderStyle === "geometric") {
-    // Clean geometric border
-    ctx.strokeStyle = theme.colors.border;
-    ctx.lineWidth = 3;
-    ctx.strokeRect(padding, padding, size - padding * 2, size - padding * 2);
-
-    // Corner squares
-    const cornerSize = 15;
-    ctx.fillStyle = theme.colors.primary;
-    [
-      [padding - cornerSize / 2, padding - cornerSize / 2],
-      [size - padding - cornerSize / 2, padding - cornerSize / 2],
-      [padding - cornerSize / 2, size - padding - cornerSize / 2],
-      [size - padding - cornerSize / 2, size - padding - cornerSize / 2],
-    ].forEach(([x, y]) => {
-      ctx.fillRect(x, y, cornerSize, cornerSize);
-    });
-  } else if (theme.borderStyle === "circuit") {
-    // Circuit-style border with glow
+    // Clean geometric border with foil effect
+    ctx.strokeStyle = glowGradient;
+    ctx.lineWidth = 4;
     ctx.shadowColor = theme.colors.primary;
-    ctx.shadowBlur = 20;
-    ctx.strokeStyle = theme.colors.primary;
-    ctx.lineWidth = 3;
+    ctx.shadowBlur = 15;
     ctx.strokeRect(padding, padding, size - padding * 2, size - padding * 2);
     ctx.shadowBlur = 0;
 
-    // Tech corner elements
+    // Corner diamonds with glow
+    const cornerSize = 20;
+    ctx.fillStyle = glowGradient;
+    ctx.shadowColor = theme.colors.primary;
+    ctx.shadowBlur = 10;
+    [
+      [padding, padding],
+      [size - padding, padding],
+      [padding, size - padding],
+      [size - padding, size - padding],
+    ].forEach(([x, y]) => {
+      ctx.beginPath();
+      ctx.moveTo(x, y - cornerSize / 2);
+      ctx.lineTo(x + cornerSize / 2, y);
+      ctx.lineTo(x, y + cornerSize / 2);
+      ctx.lineTo(x - cornerSize / 2, y);
+      ctx.closePath();
+      ctx.fill();
+    });
+    ctx.shadowBlur = 0;
+  } else if (theme.borderStyle === "circuit") {
+    // Circuit-style border with intense glow
+    ctx.shadowColor = theme.colors.primary;
+    ctx.shadowBlur = 30;
+    ctx.strokeStyle = glowGradient;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(padding, padding, size - padding * 2, size - padding * 2);
+    
+    // Second inner glow layer
+    ctx.shadowBlur = 15;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(innerPadding, innerPadding, size - innerPadding * 2, size - innerPadding * 2);
+    ctx.shadowBlur = 0;
+
+    // Tech corner elements with glow
     ctx.fillStyle = theme.colors.secondary;
     ctx.strokeStyle = theme.colors.accent;
     ctx.lineWidth = 2;
-    const techSize = 40;
+    ctx.shadowColor = theme.colors.accent;
+    ctx.shadowBlur = 12;
+    const techSize = 45;
     [
       [padding, padding],
       [size - padding - techSize, padding],
@@ -300,6 +347,7 @@ function drawBorder(
       ctx.fillRect(x, y, techSize, techSize);
       ctx.strokeRect(x + 5, y + 5, techSize - 10, techSize - 10);
     });
+    ctx.shadowBlur = 0;
   }
 
   ctx.restore();
@@ -367,7 +415,7 @@ async function drawProductImage(
   });
 }
 
-// Draw a smaller seal below the product image
+// Draw a smaller seal below the product image - positioned under issuer text
 function drawSealBelowImage(
   ctx: CanvasRenderingContext2D,
   size: number,
@@ -375,49 +423,99 @@ function drawSealBelowImage(
   theme: ReturnType<typeof getTheme>
 ) {
   const centerX = size / 2;
-  const centerY = 580; // Position below the product image (image ends at ~550)
-  const radius = 50; // Smaller seal
+  const centerY = 600; // Position under the product image section
+  const radius = 45; // Compact but visible seal
 
   ctx.save();
 
-  // Outer glow
-  ctx.shadowColor = seal.colors.primary;
-  ctx.shadowBlur = 15;
+  // Foil-like outer glow effect
+  for (let i = 2; i >= 0; i--) {
+    ctx.shadowColor = seal.colors.primary;
+    ctx.shadowBlur = 20 + i * 5;
+    ctx.globalAlpha = 0.4 + i * 0.2;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius + i * 2, 0, Math.PI * 2);
+    ctx.strokeStyle = seal.colors.highlight;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
 
-  // Gradient for seal
+  // Gradient for seal with metallic foil effect
   const gradient = ctx.createRadialGradient(
-    centerX - 15,
-    centerY - 15,
+    centerX - 12,
+    centerY - 12,
     0,
     centerX,
     centerY,
     radius
   );
   gradient.addColorStop(0, seal.colors.highlight);
-  gradient.addColorStop(0.3, seal.colors.primary);
-  gradient.addColorStop(0.7, seal.colors.secondary);
+  gradient.addColorStop(0.25, seal.colors.primary);
+  gradient.addColorStop(0.6, seal.colors.secondary);
+  gradient.addColorStop(0.85, seal.colors.primary);
   gradient.addColorStop(1, seal.colors.shadow);
 
-  // Main seal circle
+  // Main seal circle with glow
+  ctx.shadowColor = seal.colors.primary;
+  ctx.shadowBlur = 18;
   ctx.beginPath();
   ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
   ctx.fillStyle = gradient;
   ctx.fill();
-
   ctx.shadowBlur = 0;
 
-  // Inner ring
+  // Inner decorative ring
   ctx.strokeStyle = seal.colors.highlight;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.arc(centerX, centerY, radius - 8, 0, Math.PI * 2);
+  ctx.arc(centerX, centerY, radius - 6, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Seal icon (shield) - centered
+  // Inner ring 2
+  ctx.strokeStyle = seal.colors.shadow;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius - 10, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // "W3MCT" text curved on top
+  const textColor = seal.id === "platinum" ? "#1a1a2e" : "#ffffff";
+  ctx.fillStyle = textColor;
+  ctx.font = `bold 9px ${theme.fonts.body}`;
   ctx.textAlign = "center";
-  ctx.font = "24px Arial";
-  ctx.fillStyle = seal.id === "platinum" ? "#1a1a2e" : "#ffffff";
+  
+  // Draw curved text "AUTHENTICATED BY W3MCT" around the seal
+  const text = "AUTHENTICATED BY W3MCT";
+  const textRadius = radius - 14;
+  const startAngle = -Math.PI * 0.75;
+  const endAngle = -Math.PI * 0.25;
+  const anglePerChar = (endAngle - startAngle) / text.length;
+  
+  ctx.save();
+  for (let i = 0; i < text.length; i++) {
+    const angle = startAngle + anglePerChar * i + anglePerChar / 2;
+    const x = centerX + Math.cos(angle) * textRadius;
+    const y = centerY + Math.sin(angle) * textRadius;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle + Math.PI / 2);
+    ctx.fillText(text[i], 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // Shield icon in center
+  ctx.font = "22px Arial";
+  ctx.textAlign = "center";
+  ctx.fillStyle = textColor;
   ctx.fillText("🛡️", centerX, centerY + 8);
+
+  // "VERIFIED" text at bottom
+  ctx.font = `bold 8px ${theme.fonts.body}`;
+  ctx.fillStyle = textColor;
+  ctx.fillText("VERIFIED", centerX, centerY + 25);
 
   ctx.restore();
 }
@@ -541,27 +639,47 @@ function drawDetails(
   ctx.save();
   ctx.textAlign = "center";
 
-  const startY = 590;
+  const startY = 660;
 
-  // Product name
-  ctx.font = `bold 32px ${theme.fonts.heading}`;
+  // Product name with subtle shadow for elegance
+  ctx.shadowColor = theme.colors.primary;
+  ctx.shadowBlur = 4;
+  ctx.font = `bold 34px ${theme.fonts.heading}`;
   ctx.fillStyle = theme.colors.text;
   ctx.fillText(details.productName || "Product Name", size / 2, startY);
+  ctx.shadowBlur = 0;
+
+  // Decorative divider line
+  const dividerGradient = ctx.createLinearGradient(size / 2 - 100, 0, size / 2 + 100, 0);
+  dividerGradient.addColorStop(0, "transparent");
+  dividerGradient.addColorStop(0.2, theme.colors.primary);
+  dividerGradient.addColorStop(0.8, theme.colors.primary);
+  dividerGradient.addColorStop(1, "transparent");
+  ctx.strokeStyle = dividerGradient;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(size / 2 - 120, startY + 15);
+  ctx.lineTo(size / 2 + 120, startY + 15);
+  ctx.stroke();
 
   // Serial number
-  ctx.font = `18px ${theme.fonts.body}`;
+  ctx.font = `16px ${theme.fonts.body}`;
   ctx.fillStyle = theme.colors.textMuted;
   ctx.fillText(`Serial: ${details.serialNumber || "---"}`, size / 2, startY + 40);
 
   // Category
   if (details.category) {
-    ctx.fillText(`Category: ${details.category}`, size / 2, startY + 70);
+    ctx.fillText(`Category: ${details.category}`, size / 2, startY + 65);
   }
 
-  // Issuer
+  // Issuer with emphasis
   if (details.issuerName) {
-    ctx.font = `italic 16px ${theme.fonts.body}`;
-    ctx.fillText(`Issued by: ${details.issuerName}`, size / 2, startY + 100);
+    ctx.shadowColor = theme.colors.primary;
+    ctx.shadowBlur = 3;
+    ctx.font = `bold 18px ${theme.fonts.body}`;
+    ctx.fillStyle = theme.colors.primary;
+    ctx.fillText(`Issued by: ${details.issuerName}`, size / 2, startY + 95);
+    ctx.shadowBlur = 0;
   }
 
   ctx.restore();
@@ -575,25 +693,31 @@ function drawFooter(
   ctx.save();
   ctx.textAlign = "center";
 
-  // Date
+  // Date with elegant styling
   const date = new Date().toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
-  ctx.font = `14px ${theme.fonts.body}`;
+  ctx.font = `13px ${theme.fonts.body}`;
   ctx.fillStyle = theme.colors.textMuted;
-  ctx.fillText(date, size / 2, size - 100);
+  ctx.fillText(date, size / 2, size - 90);
 
-  // Blockchain badge
+  // Blockchain badge with subtle glow
+  ctx.shadowColor = theme.colors.primary;
+  ctx.shadowBlur = 6;
   ctx.font = `12px ${theme.fonts.body}`;
   ctx.fillStyle = theme.colors.primary;
-  ctx.fillText("🔗 Verified on Solana Blockchain", size / 2, size - 70);
+  ctx.fillText("🔗 Verified on Solana Blockchain", size / 2, size - 65);
+  ctx.shadowBlur = 0;
 
-  // AuthentiSeal branding
-  ctx.font = `bold 16px ${theme.fonts.heading}`;
+  // AuthentiSeal branding with glow
+  ctx.shadowColor = theme.colors.primary;
+  ctx.shadowBlur = 8;
+  ctx.font = `bold 18px ${theme.fonts.heading}`;
   ctx.fillStyle = theme.colors.primary;
-  ctx.fillText("AuthentiSeal", size / 2, size - 40);
+  ctx.fillText("AuthentiSeal", size / 2, size - 38);
+  ctx.shadowBlur = 0;
 
   ctx.restore();
 }
