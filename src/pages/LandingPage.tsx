@@ -167,6 +167,9 @@ export function LandingPage() {
             <span className="text-xl font-bold gradient-text">AuthentiSeal</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
+            <Link to="/verify" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Verify Product
+            </Link>
             <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Features
             </a>

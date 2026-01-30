@@ -16,6 +16,7 @@ import ScanQRPage from "./pages/verifier/ScanQRPage";
 import SearchPage from "./pages/verifier/SearchPage";
 import HistoryPage from "./pages/verifier/HistoryPage";
 import ReportFakePage from "./pages/verifier/ReportFakePage";
+import PublicVerifyPage from "./pages/PublicVerifyPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,6 +65,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/verify" element={<PublicVerifyPage />} />
       <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       
