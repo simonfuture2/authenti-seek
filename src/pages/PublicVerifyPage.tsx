@@ -440,11 +440,23 @@ export function PublicVerifyPage() {
                             <p className="text-xs text-muted-foreground uppercase tracking-wider">
                               Issued By
                             </p>
-                            <p className="text-sm">
-                              {certificate.profiles?.company_name ||
-                                certificate.profiles?.display_name ||
-                                "Verified Issuer"}
-                            </p>
+                            {certificate.issuer_id ? (
+                              <Link
+                                to={`/issuer/${certificate.issuer_id}`}
+                                className="text-sm text-primary hover:underline flex items-center gap-1"
+                              >
+                                {certificate.profiles?.company_name ||
+                                  certificate.profiles?.display_name ||
+                                  "Verified Issuer"}
+                                <ExternalLink className="h-3 w-3" />
+                              </Link>
+                            ) : (
+                              <p className="text-sm">
+                                {certificate.profiles?.company_name ||
+                                  certificate.profiles?.display_name ||
+                                  "Verified Issuer"}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
