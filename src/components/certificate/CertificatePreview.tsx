@@ -415,109 +415,112 @@ async function drawProductImage(
   });
 }
 
-// Draw a smaller seal below the product image - positioned under issuer text
+// Draw dual seals at bottom left and right corners
 function drawSealBelowImage(
   ctx: CanvasRenderingContext2D,
   size: number,
   seal: ReturnType<typeof getSeal>,
   theme: ReturnType<typeof getTheme>
 ) {
-  const centerX = size / 2;
-  const centerY = 600; // Position under the product image section
-  const radius = 45; // Compact but visible seal
+  const radius = 42; // Slightly smaller for dual placement
+  const bottomY = size - 120; // Position near bottom
+  const leftX = 100; // Left corner
+  const rightX = size - 100; // Right corner
 
-  ctx.save();
+  // Draw both seals
+  [leftX, rightX].forEach((centerX) => {
+    ctx.save();
 
-  // Foil-like outer glow effect
-  for (let i = 2; i >= 0; i--) {
+    // Foil-like outer glow effect
+    for (let i = 2; i >= 0; i--) {
+      ctx.shadowColor = seal.colors.primary;
+      ctx.shadowBlur = 18 + i * 4;
+      ctx.globalAlpha = 0.35 + i * 0.18;
+      ctx.beginPath();
+      ctx.arc(centerX, bottomY, radius + i * 2, 0, Math.PI * 2);
+      ctx.strokeStyle = seal.colors.highlight;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+
+    // Gradient for seal with metallic foil effect
+    const gradient = ctx.createRadialGradient(
+      centerX - 10,
+      bottomY - 10,
+      0,
+      centerX,
+      bottomY,
+      radius
+    );
+    gradient.addColorStop(0, seal.colors.highlight);
+    gradient.addColorStop(0.25, seal.colors.primary);
+    gradient.addColorStop(0.6, seal.colors.secondary);
+    gradient.addColorStop(0.85, seal.colors.primary);
+    gradient.addColorStop(1, seal.colors.shadow);
+
+    // Main seal circle with glow
     ctx.shadowColor = seal.colors.primary;
-    ctx.shadowBlur = 20 + i * 5;
-    ctx.globalAlpha = 0.4 + i * 0.2;
+    ctx.shadowBlur = 16;
     ctx.beginPath();
-    ctx.arc(centerX, centerY, radius + i * 2, 0, Math.PI * 2);
+    ctx.arc(centerX, bottomY, radius, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Inner decorative ring
     ctx.strokeStyle = seal.colors.highlight;
     ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(centerX, bottomY, radius - 5, 0, Math.PI * 2);
     ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
-  ctx.shadowBlur = 0;
 
-  // Gradient for seal with metallic foil effect
-  const gradient = ctx.createRadialGradient(
-    centerX - 12,
-    centerY - 12,
-    0,
-    centerX,
-    centerY,
-    radius
-  );
-  gradient.addColorStop(0, seal.colors.highlight);
-  gradient.addColorStop(0.25, seal.colors.primary);
-  gradient.addColorStop(0.6, seal.colors.secondary);
-  gradient.addColorStop(0.85, seal.colors.primary);
-  gradient.addColorStop(1, seal.colors.shadow);
+    // Inner ring 2
+    ctx.strokeStyle = seal.colors.shadow;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(centerX, bottomY, radius - 9, 0, Math.PI * 2);
+    ctx.stroke();
 
-  // Main seal circle with glow
-  ctx.shadowColor = seal.colors.primary;
-  ctx.shadowBlur = 18;
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-  ctx.fillStyle = gradient;
-  ctx.fill();
-  ctx.shadowBlur = 0;
-
-  // Inner decorative ring
-  ctx.strokeStyle = seal.colors.highlight;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, radius - 6, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // Inner ring 2
-  ctx.strokeStyle = seal.colors.shadow;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, radius - 10, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // "W3MCT" text curved on top
-  const textColor = seal.id === "platinum" ? "#1a1a2e" : "#ffffff";
-  ctx.fillStyle = textColor;
-  ctx.font = `bold 9px ${theme.fonts.body}`;
-  ctx.textAlign = "center";
-  
-  // Draw curved text "AUTHENTICATED BY W3MCT" around the seal
-  const text = "AUTHENTICATED BY W3MCT";
-  const textRadius = radius - 14;
-  const startAngle = -Math.PI * 0.75;
-  const endAngle = -Math.PI * 0.25;
-  const anglePerChar = (endAngle - startAngle) / text.length;
-  
-  ctx.save();
-  for (let i = 0; i < text.length; i++) {
-    const angle = startAngle + anglePerChar * i + anglePerChar / 2;
-    const x = centerX + Math.cos(angle) * textRadius;
-    const y = centerY + Math.sin(angle) * textRadius;
+    // Draw curved text "AUTHENTICATED BY W3MCT" around the top of seal
+    const textColor = seal.id === "platinum" ? "#1a1a2e" : "#ffffff";
+    ctx.fillStyle = textColor;
+    ctx.font = `bold 7px ${theme.fonts.body}`;
+    ctx.textAlign = "center";
+    
+    const text = "AUTHENTICATED BY W3MCT";
+    const textRadius = radius - 12;
+    const startAngle = -Math.PI * 0.8;
+    const endAngle = -Math.PI * 0.2;
+    const anglePerChar = (endAngle - startAngle) / text.length;
+    
     ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle + Math.PI / 2);
-    ctx.fillText(text[i], 0, 0);
+    for (let i = 0; i < text.length; i++) {
+      const angle = startAngle + anglePerChar * i + anglePerChar / 2;
+      const x = centerX + Math.cos(angle) * textRadius;
+      const y = bottomY + Math.sin(angle) * textRadius;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle + Math.PI / 2);
+      ctx.fillText(text[i], 0, 0);
+      ctx.restore();
+    }
     ctx.restore();
-  }
-  ctx.restore();
 
-  // Shield icon in center
-  ctx.font = "22px Arial";
-  ctx.textAlign = "center";
-  ctx.fillStyle = textColor;
-  ctx.fillText("🛡️", centerX, centerY + 8);
+    // Shield icon in center
+    ctx.font = "18px Arial";
+    ctx.textAlign = "center";
+    ctx.fillStyle = textColor;
+    ctx.fillText("🛡️", centerX, bottomY + 5);
 
-  // "VERIFIED" text at bottom
-  ctx.font = `bold 8px ${theme.fonts.body}`;
-  ctx.fillStyle = textColor;
-  ctx.fillText("VERIFIED", centerX, centerY + 25);
+    // "VERIFIED" text at bottom of seal
+    ctx.font = `bold 7px ${theme.fonts.body}`;
+    ctx.fillStyle = textColor;
+    ctx.fillText("VERIFIED", centerX, bottomY + 22);
 
-  ctx.restore();
+    ctx.restore();
+  });
 }
 
 async function drawAISealImage(
