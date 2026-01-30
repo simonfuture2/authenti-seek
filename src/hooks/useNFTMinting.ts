@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useToast } from "@/hooks/use-toast";
 import { logError } from "@/lib/errorHandler";
+import { useBlockchainAudit } from "@/hooks/useBlockchainAudit";
 import {
   mintCertificateNFT,
   createNFTMetadataJson,
@@ -29,6 +30,7 @@ interface MintResult {
 export function useNFTMinting() {
   const wallet = useWallet();
   const { toast } = useToast();
+  const { logMint, logMintError } = useBlockchainAudit();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastResult, setLastResult] = useState<MintResult | null>(null);
 
@@ -50,6 +52,7 @@ export function useNFTMinting() {
         return null;
       }
 
+      const walletAddress = wallet.publicKey.toBase58();
       setIsSubmitting(true);
 
       try {
@@ -57,6 +60,12 @@ export function useNFTMinting() {
         const minBalance = mode === "nft" ? 0.015 : 0.001;
         const hasBalance = await hasEnoughBalance(wallet.publicKey, minBalance);
         if (!hasBalance) {
+          await logMintError(
+            mode,
+            certificate.id,
+            walletAddress,
+            "Insufficient balance"
+          );
           toast({
             title: "Insufficient Balance",
             description: `You need at least ${minBalance} SOL for this transaction.`,
@@ -72,6 +81,12 @@ export function useNFTMinting() {
             (certificate.product_images?.[0] ?? "");
 
           if (!certificateImageUrl) {
+            await logMintError(
+              mode,
+              certificate.id,
+              walletAddress,
+              "No certificate image"
+            );
             toast({
               title: "No Certificate Image",
               description: "Please ensure the certificate has an image before minting as NFT.",
@@ -106,6 +121,9 @@ export function useNFTMinting() {
 
           setLastResult(mintResult);
 
+          // Audit log success
+          await logMint(mode, certificate.id, walletAddress, result.signature);
+
           toast({
             title: "NFT Minted! 🎉",
             description: "Your certificate is now a visual NFT on Solana.",
@@ -137,6 +155,9 @@ export function useNFTMinting() {
 
           setLastResult(mintResult);
 
+          // Audit log success
+          await logMint(mode, certificate.id, walletAddress, result.signature);
+
           toast({
             title: "Stored On-Chain! 🎉",
             description: "Certificate hash stored via memo program.",
@@ -144,11 +165,16 @@ export function useNFTMinting() {
 
           return mintResult;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
         logError(error, "useNFTMinting.mintCertificate");
+        
+        // Audit log failure
+        await logMintError(mode, certificate.id, walletAddress, errorMessage);
+        
         toast({
           title: "Minting Failed",
-          description: error.message || "Failed to mint certificate. Please try again.",
+          description: errorMessage || "Failed to mint certificate. Please try again.",
           variant: "destructive",
         });
         return null;
@@ -156,7 +182,7 @@ export function useNFTMinting() {
         setIsSubmitting(false);
       }
     },
-    [wallet, toast]
+    [wallet, toast, logMint, logMintError]
   );
 
   return {
