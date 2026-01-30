@@ -48,15 +48,14 @@ export function createUmiWithWallet(wallet: WalletContextState): Umi {
 
 /**
  * Create off-chain JSON metadata for the NFT
- * In production, this would be uploaded to Arweave/IPFS
- * For now, we'll use a data URI or external URL
+ * Note: Minimal sensitive data - uses verification URL instead of exposing internal IDs
  */
 export function createNFTMetadataJson(
   serialNumber: string,
   productName: string,
   productDescription: string,
   certificateImageUrl: string,
-  issuerId: string,
+  _issuerId: string, // Unused intentionally - issuer ID should not be in public metadata
   issuedAt: string,
   category?: string
 ): NFTMetadata {
@@ -65,11 +64,12 @@ export function createNFTMetadataJson(
     symbol: "ASEAL",
     description: productDescription || `Certificate of Authenticity for ${productName}`,
     image: certificateImageUrl,
-    external_url: `https://authentiseal.app/verify/${serialNumber}`,
+    // Use published domain for external URL - verification handles the lookup
+    external_url: `https://authenti-seek.lovable.app/verify?serial=${encodeURIComponent(serialNumber)}`,
     attributes: [
       { trait_type: "Serial Number", value: serialNumber },
       { trait_type: "Product Name", value: productName },
-      { trait_type: "Issuer ID", value: issuerId },
+      // Issuer ID removed - can be looked up via verification
       { trait_type: "Issue Date", value: issuedAt },
       { trait_type: "Category", value: category || "General" },
       { trait_type: "Certificate Type", value: "Authenticity" },
@@ -80,11 +80,18 @@ export function createNFTMetadataJson(
 
 /**
  * Create metadata URI pointing to our edge function
- * This serves the NFT metadata JSON dynamically from our database
+ * Uses a hash-based path to prevent enumeration attacks
  */
-export function createMetadataUri(serialNumber: string): string {
+export async function createMetadataUri(serialNumber: string): Promise<string> {
   const supabaseProjectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-  return `https://${supabaseProjectId}.supabase.co/functions/v1/nft-metadata/${serialNumber}`;
+  // Create a hashed path to prevent serial number enumeration
+  const encoder = new TextEncoder();
+  const data = encoder.encode(serialNumber + "authenti-seal-salt-v1");
+  const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", data.buffer as unknown as BufferSource);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
+  
+  return `https://${supabaseProjectId}.supabase.co/functions/v1/nft-metadata/${hashHex}`;
 }
 
 /**

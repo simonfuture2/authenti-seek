@@ -104,14 +104,7 @@ export function OnChainVerification({
                     <span>Slot: {verificationResult.slot.toLocaleString()}</span>
                   </div>
                 )}
-                {verificationResult.onChainData?.hash && (
-                  <div className="mt-2 p-2 rounded bg-background/50">
-                    <p className="text-xs text-muted-foreground mb-1">Certificate Hash</p>
-                    <code className="text-xs font-mono break-all">
-                      {String(verificationResult.onChainData.hash)}
-                    </code>
-                  </div>
-                )}
+                {/* Note: Hash and internal metadata intentionally not displayed for security */}
               </div>
             )}
           </motion.div>
