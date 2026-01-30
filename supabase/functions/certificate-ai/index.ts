@@ -66,8 +66,9 @@ Style: ${categoryStyle}.
 Colors: ${colorStyle}.
 The seal should be a 3D metallic embossed circular badge with intricate details, featuring a shield or crest in the center.
 Include subtle holographic rainbow shimmer effects around the edges.
-The word "AUTHENTIC" should be elegantly integrated into the design.
-Professional luxury brand quality, photorealistic metallic textures, dramatic lighting.
+IMPORTANT: The text "AUTHENTICATED BY W3MCT" MUST be elegantly integrated as curved text around the outer ring of the seal.
+The word "AUTHENTIC" should also appear prominently in the center design.
+Professional luxury brand quality, photorealistic metallic textures, dramatic lighting with foil-like reflections.
 Square 1:1 aspect ratio, centered composition on a transparent or dark background.`;
 
       const imageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
