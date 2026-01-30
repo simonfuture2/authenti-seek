@@ -2,6 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
+export interface MostVerifiedItem {
+  id: string;
+  productName: string;
+  serialNumber: string;
+  category: string | null;
+  verificationCount: number;
+  lastVerified: string | null;
+}
+
 export interface AnalyticsData {
   totalCertificates: number;
   activeCertificates: number;
@@ -10,6 +19,7 @@ export interface AnalyticsData {
   recentVerifications: number;
   certificatesByCategory: { category: string; count: number }[];
   verificationsOverTime: { date: string; count: number }[];
+  mostVerifiedItems: MostVerifiedItem[];
 }
 
 export function useIssuerAnalytics() {
@@ -21,7 +31,7 @@ export function useIssuerAnalytics() {
       // Get certificate counts
       const { data: certificates, error: certError } = await supabase
         .from("certificates")
-        .select("id, status, product_category, created_at")
+        .select("id, status, product_category, product_name, serial_number, created_at")
         .eq("issuer_id", user!.id);
 
       if (certError) throw certError;
@@ -100,6 +110,50 @@ export function useIssuerAnalytics() {
         }
       }
 
+      // Get most verified items
+      const mostVerifiedItems: MostVerifiedItem[] = [];
+      
+      if (certificateIds.length > 0) {
+        const { data: verificationCounts } = await supabase
+          .from("verification_logs")
+          .select("certificate_id, verified_at")
+          .in("certificate_id", certificateIds);
+
+        // Count verifications per certificate
+        const countMap = new Map<string, { count: number; lastVerified: string | null }>();
+        verificationCounts?.forEach((log) => {
+          const existing = countMap.get(log.certificate_id);
+          if (existing) {
+            existing.count += 1;
+            if (!existing.lastVerified || log.verified_at > existing.lastVerified) {
+              existing.lastVerified = log.verified_at;
+            }
+          } else {
+            countMap.set(log.certificate_id, { count: 1, lastVerified: log.verified_at });
+          }
+        });
+
+        // Sort by count and get top 5
+        const sortedCerts = Array.from(countMap.entries())
+          .sort((a, b) => b[1].count - a[1].count)
+          .slice(0, 5);
+
+        // Match with certificate data
+        sortedCerts.forEach(([certId, data]) => {
+          const cert = certificates?.find((c) => c.id === certId);
+          if (cert) {
+            mostVerifiedItems.push({
+              id: cert.id,
+              productName: cert.product_name || "Unknown Product",
+              serialNumber: cert.serial_number || "N/A",
+              category: cert.product_category,
+              verificationCount: data.count,
+              lastVerified: data.lastVerified,
+            });
+          }
+        });
+      }
+
       return {
         totalCertificates,
         activeCertificates,
@@ -108,6 +162,7 @@ export function useIssuerAnalytics() {
         recentVerifications,
         certificatesByCategory,
         verificationsOverTime,
+        mostVerifiedItems,
       };
     },
     enabled: !!user,

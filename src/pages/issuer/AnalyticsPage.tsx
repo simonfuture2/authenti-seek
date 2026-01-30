@@ -7,8 +7,19 @@ import {
   CheckCircle2,
   Send,
   Eye,
+  Trophy,
+  Clock,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import {
   AreaChart,
   Area,
@@ -24,6 +35,7 @@ import {
 import { IssuerDashboardLayout } from "@/components/layout/IssuerDashboardLayout";
 import { useIssuerAnalytics } from "@/hooks/useAnalytics";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatDistanceToNow } from "date-fns";
 
 const COLORS = ["hsl(280, 100%, 65%)", "hsl(174, 100%, 42%)", "hsl(38, 92%, 50%)", "hsl(142, 76%, 45%)"];
 
@@ -281,6 +293,88 @@ export function AnalyticsPage() {
                 </p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Most Verified Items */}
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-warning" />
+              Most Verified Items
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {analytics?.mostVerifiedItems && analytics.mostVerifiedItems.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">#</TableHead>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Serial Number</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead className="text-center">Verifications</TableHead>
+                    <TableHead>Last Verified</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {analytics.mostVerifiedItems.map((item, index) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                          index === 0 
+                            ? "bg-warning/20 text-warning" 
+                            : index === 1 
+                            ? "bg-muted text-muted-foreground" 
+                            : index === 2 
+                            ? "bg-orange-500/20 text-orange-400" 
+                            : "bg-muted/50 text-muted-foreground"
+                        }`}>
+                          {index + 1}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium">{item.productName}</TableCell>
+                      <TableCell>
+                        <code className="text-xs bg-muted px-2 py-1 rounded">
+                          {item.serialNumber}
+                        </code>
+                      </TableCell>
+                      <TableCell>
+                        {item.category ? (
+                          <Badge variant="secondary">{item.category}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Eye className="h-4 w-4 text-primary" />
+                          <span className="font-semibold">{item.verificationCount}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {item.lastVerified ? (
+                          <div className="flex items-center gap-1 text-muted-foreground text-sm">
+                            <Clock className="h-3 w-3" />
+                            {formatDistanceToNow(new Date(item.lastVerified), { addSuffix: true })}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="h-32 flex items-center justify-center text-muted-foreground">
+                <div className="text-center">
+                  <Trophy className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                  <p>No verification data yet</p>
+                  <p className="text-sm">Verified items will appear here</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
