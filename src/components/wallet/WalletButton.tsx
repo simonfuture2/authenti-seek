@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Wallet, ChevronDown, LogOut, Copy, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,27 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { CustomWalletModal } from "./CustomWalletModal";
+import { useBlockchainAudit } from "@/hooks/useBlockchainAudit";
 
 export function WalletButton() {
   const { publicKey, wallet, disconnect, connected, connecting } = useWallet();
   const [modalOpen, setModalOpen] = useState(false);
+  const { logWalletEvent } = useBlockchainAudit();
+  const prevConnectedRef = useRef(connected);
+
+  // Track wallet connect/disconnect events
+  useEffect(() => {
+    const wasConnected = prevConnectedRef.current;
+    prevConnectedRef.current = connected;
+
+    if (connected && publicKey && !wasConnected) {
+      // Just connected
+      logWalletEvent("connect", publicKey.toBase58(), wallet?.adapter.name);
+    } else if (!connected && wasConnected) {
+      // Just disconnected - we don't have publicKey anymore, use placeholder
+      logWalletEvent("disconnect", "disconnected", wallet?.adapter.name);
+    }
+  }, [connected, publicKey, wallet, logWalletEvent]);
 
   const handleConnect = () => {
     setModalOpen(true);

@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      blockchain_audit_logs: {
+        Row: {
+          certificate_id: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          ip_hash: string | null
+          operation_type: string
+          request_metadata: Json | null
+          solana_signature: string | null
+          success: boolean
+          user_agent_hash: string | null
+          user_id: string | null
+          wallet_address: string | null
+        }
+        Insert: {
+          certificate_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          ip_hash?: string | null
+          operation_type: string
+          request_metadata?: Json | null
+          solana_signature?: string | null
+          success?: boolean
+          user_agent_hash?: string | null
+          user_id?: string | null
+          wallet_address?: string | null
+        }
+        Update: {
+          certificate_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          ip_hash?: string | null
+          operation_type?: string
+          request_metadata?: Json | null
+          solana_signature?: string | null
+          success?: boolean
+          user_agent_hash?: string | null
+          user_id?: string | null
+          wallet_address?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blockchain_audit_logs_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blockchain_audit_logs_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       certificate_metadata_versions: {
         Row: {
           certificate_id: string
