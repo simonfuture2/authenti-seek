@@ -21,6 +21,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { MobileNav } from "@/components/layout/MobileNav";
 
 const features = [
   {
@@ -159,7 +160,7 @@ export function LandingPage() {
     <div className="min-h-screen bg-background">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-solana-gradient">
               <Shield className="h-5 w-5 text-white" />
@@ -183,12 +184,23 @@ export function LandingPage() {
               FAQ
             </a>
           </div>
-          <Link to="/auth">
-            <Button className="bg-solana-gradient hover:opacity-90">
-              Get Started
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/auth" className="hidden md:inline-flex">
+              <Button className="bg-solana-gradient hover:opacity-90">
+                Get Started
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+            <MobileNav
+              links={[
+                { label: "Verify Product", href: "/verify", isRoute: true },
+                { label: "Features", href: "#features" },
+                { label: "How It Works", href: "#how-it-works" },
+                { label: "Pricing", href: "#pricing" },
+                { label: "FAQ", href: "#faq" },
+              ]}
+            />
+          </div>
         </div>
       </nav>
 
@@ -458,30 +470,30 @@ export function LandingPage() {
       {/* Footer */}
       <footer className="py-12 px-4 border-t border-border">
         <div className="container mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex flex-col items-center gap-6 text-center">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-solana-gradient">
                 <Shield className="h-5 w-5 text-white" />
               </div>
               <span className="text-xl font-bold gradient-text">AuthentiSeal</span>
             </div>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <a href="#features" className="hover:text-foreground transition-colors">
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-sm text-muted-foreground">
+              <a href="#features" className="hover:text-foreground transition-colors py-1">
                 Features
               </a>
-              <a href="#pricing" className="hover:text-foreground transition-colors">
+              <a href="#pricing" className="hover:text-foreground transition-colors py-1">
                 Pricing
               </a>
-              <a href="#faq" className="hover:text-foreground transition-colors">
+              <a href="#faq" className="hover:text-foreground transition-colors py-1">
                 FAQ
               </a>
-              <Link to="/auth" className="hover:text-foreground transition-colors">
+              <Link to="/auth" className="hover:text-foreground transition-colors py-1">
                 Sign In
               </Link>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Globe className="h-4 w-4" />
-              <span>© 2024 AuthentiSeal. All rights reserved.</span>
+              <span>© 2025 AuthentiSeal. All rights reserved.</span>
             </div>
           </div>
         </div>
