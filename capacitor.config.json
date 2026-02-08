@@ -1,9 +1,22 @@
 {
-  "appId": "app.lovable.c2bfb26c8b9a4ca0a5fce041ed4c9702",
+  "appId": "app.authentiseal.coa",
   "appName": "AuthentiSeal",
   "webDir": "dist",
   "server": {
     "url": "https://c2bfb26c-8b9a-4ca0-a5fc-e041ed4c9702.lovableproject.com?forceHideBadge=true",
     "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#0a0a12",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
+    }
   }
 }
