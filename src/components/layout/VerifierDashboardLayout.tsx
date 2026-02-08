@@ -20,6 +20,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { cn } from "@/lib/utils";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { CreditsDisplay } from "@/components/credits/CreditsDisplay";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -159,9 +160,19 @@ export function VerifierDashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 p-4 lg:p-8 overflow-auto">{children}</main>
+        {/* Page content - add bottom padding for mobile bottom nav */}
+        <main className="flex-1 p-4 lg:p-8 pb-24 lg:pb-8 overflow-auto">{children}</main>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav
+        items={[
+          { icon: QrCode, label: "Scan", path: "/verifier/scan" },
+          { icon: Search, label: "Search", path: "/verifier/search" },
+          { icon: History, label: "History", path: "/verifier/history" },
+          { icon: AlertTriangle, label: "Report", path: "/verifier/report" },
+        ]}
+      />
     </div>
   );
 }

@@ -20,6 +20,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { cn } from "@/lib/utils";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { CreditsDisplay } from "@/components/credits/CreditsDisplay";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -27,7 +28,7 @@ interface DashboardLayoutProps {
 
 const issuerNavItems = [
   { icon: PlusCircle, label: "Create COA", path: "/issuer/create" },
-  { icon: FileImage, label: "My Certificates", path: "/issuer/certificates" },
+  { icon: FileImage, label: "Certificates", path: "/issuer/certificates" },
   { icon: Send, label: "Transfer", path: "/issuer/transfer" },
   { icon: BarChart3, label: "Analytics", path: "/issuer/analytics" },
   { icon: Settings, label: "Settings", path: "/settings" },
@@ -159,9 +160,19 @@ export function IssuerDashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 p-4 lg:p-8 overflow-auto">{children}</main>
+        {/* Page content - add bottom padding for mobile bottom nav */}
+        <main className="flex-1 p-4 lg:p-8 pb-24 lg:pb-8 overflow-auto">{children}</main>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav
+        items={[
+          { icon: PlusCircle, label: "Create", path: "/issuer/create" },
+          { icon: FileImage, label: "Certs", path: "/issuer/certificates" },
+          { icon: Send, label: "Transfer", path: "/issuer/transfer" },
+          { icon: BarChart3, label: "Analytics", path: "/issuer/analytics" },
+        ]}
+      />
     </div>
   );
 }
