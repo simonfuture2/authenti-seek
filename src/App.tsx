@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SolanaProvider } from "@/contexts/SolanaContext";
+import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
 import LandingPage from "./pages/LandingPage";
 import AuthPage from "./pages/AuthPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -95,6 +96,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <PWAUpdatePrompt />
           <BrowserRouter>
             <AppRoutes />
           </BrowserRouter>
