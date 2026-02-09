@@ -13,9 +13,9 @@ import {
 import { walletAdapterIdentity } from "@metaplex-foundation/umi-signer-wallet-adapters";
 import { WalletContextState } from "@solana/wallet-adapter-react";
 import bs58 from "bs58";
+import { SOLANA_RPC_ENDPOINT, getExplorerAddressUrl } from "@/lib/solana-config";
 
-// Solana Devnet RPC
-const SOLANA_NETWORK = "https://api.devnet.solana.com";
+const SOLANA_NETWORK = SOLANA_RPC_ENDPOINT;
 
 export interface NFTMetadata {
   name: string;
@@ -131,7 +131,7 @@ export async function mintCertificateNFT(
   return {
     signature: signatureString,
     mintAddress: mint.publicKey.toString(),
-    explorerUrl: `https://explorer.solana.com/address/${mint.publicKey.toString()}?cluster=devnet`,
+    explorerUrl: getExplorerAddressUrl(mint.publicKey.toString()),
   };
 }
 

@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 import { CustomWalletModal } from "./CustomWalletModal";
 import { useBlockchainAudit } from "@/hooks/useBlockchainAudit";
+import { getExplorerAddressUrl } from "@/lib/solana-config";
 
 export function WalletButton() {
   const { publicKey, wallet, disconnect, connected, connecting } = useWallet();
@@ -93,7 +94,7 @@ export function WalletButton() {
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <a
-              href={`https://explorer.solana.com/address/${publicKey.toBase58()}?cluster=devnet`}
+              href={getExplorerAddressUrl(publicKey.toBase58())}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center"

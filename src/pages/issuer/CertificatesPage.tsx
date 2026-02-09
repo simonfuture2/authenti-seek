@@ -43,6 +43,7 @@ import { useCertificates, Certificate } from "@/hooks/useCertificates";
 import { useToast } from "@/hooks/use-toast";
 import { useNFTMinting } from "@/hooks/useNFTMinting";
 import { getExplorerUrl } from "@/lib/solana";
+import { getExplorerAddressUrl } from "@/lib/solana-config";
 import { MintingMode } from "@/lib/metaplex";
 import { cn } from "@/lib/utils";
 import { QRCodeSVG } from "qrcode.react";
@@ -761,7 +762,7 @@ export default function CertificatesPage() {
                             <Copy className="h-4 w-4" />
                           </button>
                           <a
-                            href={`https://explorer.solana.com/address/${selectedCert.solana_account}?cluster=devnet`}
+                            href={getExplorerAddressUrl(selectedCert.solana_account!)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-primary hover:text-primary/80"
