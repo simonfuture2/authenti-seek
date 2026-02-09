@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
-import { Camera, CameraOff, RefreshCw } from "lucide-react";
+import { Camera, CameraOff, RefreshCw, Keyboard, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
 interface QRScannerProps {
@@ -14,12 +15,13 @@ export function QRScanner({ onScan, onError }: QRScannerProps) {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [cameras, setCameras] = useState<{ id: string; label: string }[]>([]);
   const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
+  const [manualInput, setManualInput] = useState("");
+  const [showManualInput, setShowManualInput] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check for camera support
     Html5Qrcode.getCameras()
       .then((devices) => {
         if (devices && devices.length > 0) {
@@ -60,9 +62,7 @@ export function QRScanner({ onScan, onError }: QRScannerProps) {
         (decodedText) => {
           handleScanSuccess(decodedText);
         },
-        () => {
-          // Ignore scan failures (no QR in frame)
-        }
+        () => {}
       );
 
       setIsScanning(true);
@@ -74,6 +74,8 @@ export function QRScanner({ onScan, onError }: QRScannerProps) {
         variant: "destructive",
       });
       onError?.(errorMessage);
+      // Auto-show manual input on camera failure
+      setShowManualInput(true);
     }
   };
 
@@ -95,6 +97,14 @@ export function QRScanner({ onScan, onError }: QRScannerProps) {
     onScan(decodedText);
   };
 
+  const handleManualSubmit = () => {
+    const trimmed = manualInput.trim();
+    if (trimmed) {
+      onScan(trimmed);
+      setManualInput("");
+    }
+  };
+
   const switchCamera = async () => {
     if (cameras.length <= 1) return;
     
@@ -102,21 +112,69 @@ export function QRScanner({ onScan, onError }: QRScannerProps) {
     const nextIndex = (currentCameraIndex + 1) % cameras.length;
     setCurrentCameraIndex(nextIndex);
     
-    // Small delay before restarting with new camera
     setTimeout(() => {
       startScanner();
     }, 100);
   };
 
+  // Manual input section (shared between camera-denied and fallback)
+  const ManualInputSection = () => (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Keyboard className="h-4 w-4" />
+        <span>Enter serial number or certificate ID manually</span>
+      </div>
+      <div className="flex gap-2">
+        <Input
+          placeholder="Serial number or certificate ID..."
+          value={manualInput}
+          onChange={(e) => setManualInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleManualSubmit()}
+          className="flex-1"
+        />
+        <Button onClick={handleManualSubmit} disabled={!manualInput.trim()} size="icon">
+          <Search className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+
   if (hasPermission === false) {
     return (
-      <div className="aspect-square rounded-xl bg-muted/50 flex flex-col items-center justify-center border-2 border-dashed border-border p-6">
-        <CameraOff className="h-16 w-16 text-muted-foreground mb-4" />
-        <p className="text-muted-foreground text-center">
-          Camera access denied or unavailable.
-          <br />
-          <span className="text-sm">Please enable camera permissions in your browser settings.</span>
-        </p>
+      <div className="space-y-5">
+        <div className="rounded-xl bg-muted/30 border border-border p-8 flex flex-col items-center justify-center text-center">
+          <div className="h-14 w-14 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+            <CameraOff className="h-7 w-7 text-destructive" />
+          </div>
+          <p className="font-medium mb-1">Camera unavailable</p>
+          <p className="text-sm text-muted-foreground mb-4">
+            Camera access was denied or isn't available on this device.
+            <br />
+            You can enter details manually below instead.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setHasPermission(null);
+              Html5Qrcode.getCameras()
+                .then((devices) => {
+                  if (devices && devices.length > 0) {
+                    setCameras(devices);
+                    setHasPermission(true);
+                  } else {
+                    setHasPermission(false);
+                  }
+                })
+                .catch(() => setHasPermission(false));
+            }}
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Retry Camera
+          </Button>
+        </div>
+        <ManualInputSection />
       </div>
     );
   }
@@ -128,9 +186,11 @@ export function QRScanner({ onScan, onError }: QRScannerProps) {
         className="relative aspect-square rounded-xl overflow-hidden bg-black/90 border border-border"
       >
         {!isScanning ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/50">
-            <Camera className="h-16 w-16 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground text-center mb-4">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/30">
+            <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Camera className="h-7 w-7 text-primary" />
+            </div>
+            <p className="text-muted-foreground text-center text-sm mb-4">
               Ready to scan QR code
             </p>
             <Button onClick={startScanner} className="gap-2">
@@ -141,7 +201,6 @@ export function QRScanner({ onScan, onError }: QRScannerProps) {
         ) : (
           <>
             <div id="qr-reader" className="w-full h-full" />
-            {/* Scanning overlay */}
             <div className="absolute inset-0 pointer-events-none">
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-64 h-64 border-2 border-primary rounded-lg relative">
@@ -149,7 +208,6 @@ export function QRScanner({ onScan, onError }: QRScannerProps) {
                   <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-lg" />
                   <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-lg" />
                   <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-lg" />
-                  {/* Scanning line animation */}
                   <div className="absolute left-2 right-2 h-0.5 bg-primary/80 animate-pulse top-1/2" />
                 </div>
               </div>
@@ -169,6 +227,22 @@ export function QRScanner({ onScan, onError }: QRScannerProps) {
               <RefreshCw className="h-4 w-4" />
               Switch Camera
             </Button>
+          )}
+        </div>
+      )}
+
+      {/* Manual input toggle & form */}
+      {!isScanning && (
+        <div className="space-y-3">
+          {!showManualInput ? (
+            <button
+              onClick={() => setShowManualInput(true)}
+              className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors py-2 inline-link"
+            >
+              Or enter serial number manually →
+            </button>
+          ) : (
+            <ManualInputSection />
           )}
         </div>
       )}
