@@ -13,7 +13,7 @@ export function MobileNav({ links }: MobileNavProps) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       <button
         onClick={() => setOpen(!open)}
         className="p-2 text-muted-foreground hover:text-foreground transition-colors"
