@@ -188,6 +188,9 @@ export function LandingPage() {
             <a href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               FAQ
             </a>
+            <Link to="/developers" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Developers
+            </Link>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle compact />
@@ -204,6 +207,7 @@ export function LandingPage() {
                 { label: "How It Works", href: "#how-it-works" },
                 { label: "Pricing", href: "#pricing" },
                 { label: "FAQ", href: "#faq" },
+                { label: "Developers", href: "/developers", isRoute: true },
               ]}
             />
           </div>
@@ -507,6 +511,9 @@ export function LandingPage() {
               <a href="#faq" className="hover:text-foreground transition-colors py-1">
                 FAQ
               </a>
+              <Link to="/developers" className="hover:text-foreground transition-colors py-1">
+                Developers
+              </Link>
               <Link to="/auth" className="hover:text-foreground transition-colors py-1">
                 Sign In
               </Link>
