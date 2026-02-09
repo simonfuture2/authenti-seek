@@ -6,7 +6,8 @@ import {
   LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
 import { WalletContextState } from "@solana/wallet-adapter-react";
-import { SOLANA_RPC_ENDPOINT, getExplorerTxUrl } from "@/lib/solana-config";
+import { SOLANA_RPC_ENDPOINT, getExplorerTxUrl, SOLANA_CLUSTER } from "@/lib/solana-config";
+import { clusterApiUrl } from "@solana/web3.js";
 
 // Solana Memo Program ID
 const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
@@ -143,79 +144,119 @@ export async function verifyCertificateOnChain(
   onChainData: Record<string, unknown> | null;
   blockTime: number | null;
   slot: number;
+  cluster?: string;
 }> {
-  const connection = new Connection(SOLANA_NETWORK, "confirmed");
+  // Build ordered list of RPC endpoints to try:
+  // 1. Currently configured cluster (fast path)
+  // 2. The other cluster (fallback)
+  const endpoints: { url: string; cluster: string }[] = [
+    { url: SOLANA_RPC_ENDPOINT, cluster: SOLANA_CLUSTER },
+  ];
 
-  try {
-    const tx = await connection.getTransaction(signature, {
-      commitment: "confirmed",
-      maxSupportedTransactionVersion: 0,
-    });
+  const fallbackCluster = SOLANA_CLUSTER === "mainnet-beta" ? "devnet" : "mainnet-beta";
+  endpoints.push({
+    url: clusterApiUrl(fallbackCluster as "devnet" | "mainnet-beta"),
+    cluster: fallbackCluster,
+  });
 
-    if (!tx) {
-      return { verified: false, onChainData: null, blockTime: null, slot: 0 };
-    }
-
-    // Extract memo data from transaction
-    const memoInstruction = tx.transaction.message.compiledInstructions?.find(
-      (ix) => {
-        const programId = tx.transaction.message.staticAccountKeys[ix.programIdIndex];
-        return programId.equals(MEMO_PROGRAM_ID);
-      }
-    );
-
-    if (!memoInstruction) {
-      return { verified: false, onChainData: null, blockTime: tx.blockTime, slot: tx.slot };
-    }
-
-    // Decode memo data
-    const memoDataBuffer = Buffer.from(memoInstruction.data);
-    const memoDataString = memoDataBuffer.toString("utf-8");
-    let parsedData: Record<string, unknown>;
-    
+  for (const { url, cluster } of endpoints) {
     try {
-      const rawData = JSON.parse(memoDataString);
-      
-      // Handle both new minimal format (t: "AS") and legacy format (type: "COA_CERTIFICATE")
-      if (rawData.t === "AS") {
-        parsedData = {
-          type: "COA_CERTIFICATE",
-          hash: rawData.h,
-          hasNfc: !!rawData.n,
-        };
-      } else if (rawData.type === "COA_CERTIFICATE") {
-        // Legacy format compatibility
-        parsedData = {
-          type: rawData.type,
-          hash: rawData.hash,
-        };
-      } else {
-        parsedData = { raw: memoDataString };
-      }
+      const result = await _verifyOnCluster(url, cluster, signature, expectedHash);
+      if (result) return result;
     } catch {
-      parsedData = { raw: memoDataString };
+      // Continue to next cluster
     }
+  }
 
-    // Verify hash if expected hash is provided
-    const verified = expectedHash 
-      ? parsedData.hash === expectedHash 
-      : parsedData.type === "COA_CERTIFICATE";
+  return { verified: false, onChainData: null, blockTime: null, slot: 0 };
+}
 
-    // Return sanitized data - only include verification status
-    // Do NOT expose raw hash or internal data structures
+/**
+ * Internal helper: attempt verification against a single cluster.
+ * Returns null if the transaction is not found on that cluster.
+ */
+async function _verifyOnCluster(
+  rpcUrl: string,
+  cluster: string,
+  signature: string,
+  expectedHash?: string
+): Promise<{
+  verified: boolean;
+  onChainData: Record<string, unknown> | null;
+  blockTime: number | null;
+  slot: number;
+  cluster: string;
+} | null> {
+  const connection = new Connection(rpcUrl, "confirmed");
+
+  const tx = await connection.getTransaction(signature, {
+    commitment: "confirmed",
+    maxSupportedTransactionVersion: 0,
+  });
+
+  if (!tx) return null; // Not found on this cluster
+
+  // Extract memo data from transaction
+  const memoInstruction = tx.transaction.message.compiledInstructions?.find(
+    (ix) => {
+      const programId = tx.transaction.message.staticAccountKeys[ix.programIdIndex];
+      return programId.equals(MEMO_PROGRAM_ID);
+    }
+  );
+
+  if (!memoInstruction) {
     return {
-      verified,
-      onChainData: { 
-        verified,
-        recordFound: true,
-      },
+      verified: false,
+      onChainData: null,
       blockTime: tx.blockTime,
       slot: tx.slot,
+      cluster,
     };
-  } catch {
-    // Error handled silently - verification failed
-    return { verified: false, onChainData: null, blockTime: null, slot: 0 };
   }
+
+  // Decode memo data
+  const memoDataBuffer = Buffer.from(memoInstruction.data);
+  const memoDataString = memoDataBuffer.toString("utf-8");
+  let parsedData: Record<string, unknown>;
+
+  try {
+    const rawData = JSON.parse(memoDataString);
+
+    // Handle both new minimal format (t: "AS") and legacy format (type: "COA_CERTIFICATE")
+    if (rawData.t === "AS") {
+      parsedData = {
+        type: "COA_CERTIFICATE",
+        hash: rawData.h,
+        hasNfc: !!rawData.n,
+      };
+    } else if (rawData.type === "COA_CERTIFICATE") {
+      parsedData = {
+        type: rawData.type,
+        hash: rawData.hash,
+      };
+    } else {
+      parsedData = { raw: memoDataString };
+    }
+  } catch {
+    parsedData = { raw: memoDataString };
+  }
+
+  // Verify hash if expected hash is provided
+  const verified = expectedHash
+    ? parsedData.hash === expectedHash
+    : parsedData.type === "COA_CERTIFICATE";
+
+  return {
+    verified,
+    onChainData: {
+      verified,
+      recordFound: true,
+      cluster,
+    },
+    blockTime: tx.blockTime,
+    slot: tx.slot,
+    cluster,
+  };
 }
 
 /**
