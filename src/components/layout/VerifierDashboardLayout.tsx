@@ -23,6 +23,7 @@ import { WalletButton } from "@/components/wallet/WalletButton";
 import { CreditsDisplay } from "@/components/credits/CreditsDisplay";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { NetworkBadge } from "@/components/wallet/NetworkBadge";
+import { SolPriceTicker } from "@/components/wallet/SolPriceTicker";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -117,10 +118,13 @@ export function VerifierDashboardLayout({ children }: DashboardLayoutProps) {
           ))}
         </nav>
 
-        {/* Theme & Credits */}
-        <div className="px-4 py-2 flex items-center justify-between">
-          <CreditsDisplay compact />
-          <ThemeToggle compact />
+        {/* Theme, Credits & SOL Price */}
+        <div className="px-4 py-2 space-y-2">
+          <SolPriceTicker />
+          <div className="flex items-center justify-between">
+            <CreditsDisplay compact />
+            <ThemeToggle compact />
+          </div>
         </div>
 
         {/* Wallet connection */}
@@ -160,6 +164,9 @@ export function VerifierDashboardLayout({ children }: DashboardLayoutProps) {
             <img src={authentisealIcon} alt="AuthentiSeal" className="h-7 w-7 rounded" />
             <span className="font-semibold gradient-text">AuthentiSeal</span>
             <NetworkBadge compact />
+          </div>
+          <div className="ml-auto">
+            <SolPriceTicker compact />
           </div>
         </header>
 
