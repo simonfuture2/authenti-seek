@@ -369,7 +369,7 @@ export function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {pricingPlans.map((plan, index) => (
               <motion.div
                 key={plan.name}
@@ -377,7 +377,7 @@ export function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className={`glass-card p-8 rounded-xl relative ${
+                className={`glass-card p-6 md:p-8 rounded-xl relative ${
                   plan.popular ? "border-primary ring-2 ring-primary/20" : ""
                 }`}
               >

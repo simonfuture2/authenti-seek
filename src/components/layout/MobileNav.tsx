@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Shield, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import authentisealIcon from "@/assets/authentiseal-icon.png";
+import { SolPriceTicker } from "@/components/wallet/SolPriceTicker";
 
 interface MobileNavProps {
   links: { label: string; href: string; isRoute?: boolean }[];
@@ -28,10 +29,11 @@ export function MobileNav({ links }: MobileNavProps) {
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-solana-gradient">
-                  <Shield className="h-5 w-5 text-white" />
+                <img src={authentisealIcon} alt="AuthentiSeal" className="h-9 w-9 rounded-lg" />
+                <div className="flex flex-col">
+                  <span className="text-xl font-bold gradient-text leading-tight">AuthentiSeal</span>
+                  <SolPriceTicker compact />
                 </div>
-                <span className="text-xl font-bold gradient-text">AuthentiSeal</span>
               </div>
               <button
                 onClick={() => setOpen(false)}
