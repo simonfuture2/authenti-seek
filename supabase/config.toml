@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.verify-public]
 verify_jwt = false
+
+[functions.collectai-identify]
+verify_jwt = false
