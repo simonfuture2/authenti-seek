@@ -3,22 +3,22 @@ import {
   ConnectionProvider,
   WalletProvider,
 } from "@solana/wallet-adapter-react";
-import { WalletAdapterNetwork, Adapter } from "@solana/wallet-adapter-base";
+import { Adapter } from "@solana/wallet-adapter-base";
 import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
 import { WalletConnectWalletAdapter } from "@walletconnect/solana-adapter";
-import { clusterApiUrl, Commitment } from "@solana/web3.js";
+import { Commitment } from "@solana/web3.js";
+import { SOLANA_WALLET_NETWORK, SOLANA_RPC_ENDPOINT } from "@/lib/solana-config";
 
 interface SolanaProviderProps {
   children: React.ReactNode;
 }
 
 export function SolanaProvider({ children }: SolanaProviderProps) {
-  // Use devnet for development, mainnet-beta for production
-  const network = WalletAdapterNetwork.Devnet;
-  const endpoint = useMemo(() => clusterApiUrl(network), []);
+  const network = SOLANA_WALLET_NETWORK;
+  const endpoint = useMemo(() => SOLANA_RPC_ENDPOINT, []);
   
   const config = useMemo(
     () => ({

@@ -6,12 +6,12 @@ import {
   LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
 import { WalletContextState } from "@solana/wallet-adapter-react";
+import { SOLANA_RPC_ENDPOINT, getExplorerTxUrl } from "@/lib/solana-config";
 
 // Solana Memo Program ID
 const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
 
-// Connection to Solana devnet (switch to mainnet-beta for production)
-const SOLANA_NETWORK = "https://api.devnet.solana.com";
+const SOLANA_NETWORK = SOLANA_RPC_ENDPOINT;
 
 export interface CertificateOnChainData {
   serialNumber: string;
@@ -220,9 +220,10 @@ export async function verifyCertificateOnChain(
 
 /**
  * Get Solana explorer URL for a transaction
+ * Uses centralized network config for cluster param
  */
-export function getExplorerUrl(signature: string, cluster: "devnet" | "mainnet-beta" = "devnet"): string {
-  return `https://explorer.solana.com/tx/${signature}?cluster=${cluster}`;
+export function getExplorerUrl(signature: string): string {
+  return getExplorerTxUrl(signature);
 }
 
 /**

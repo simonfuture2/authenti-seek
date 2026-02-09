@@ -10,6 +10,7 @@ import {
   createDefaultChainSelector,
   createDefaultWalletNotFoundHandler,
 } from "@solana-mobile/wallet-standard-mobile";
+import { MWA_CHAINS } from "@/lib/solana-config";
 
 registerMwa({
   appIdentity: {
@@ -18,7 +19,7 @@ registerMwa({
     icon: "/favicon.ico",
   },
   authorizationCache: createDefaultAuthorizationCache(),
-  chains: ["solana:devnet", "solana:mainnet"] as const,
+  chains: MWA_CHAINS,
   chainSelector: createDefaultChainSelector(),
   onWalletNotFound: createDefaultWalletNotFoundHandler(),
 });

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { IS_MAINNET } from "@/lib/solana-config";
 import { motion, AnimatePresence } from "framer-motion";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import {
@@ -251,7 +252,8 @@ export function CreditsPurchaseModal({
                 )}
               </div>
 
-              {/* Devnet Warning */}
+              {/* Network Warning */}
+              {!IS_MAINNET && (
               <div className="bg-muted/50 border border-border rounded-lg p-3">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <AlertCircle className="h-4 w-4" />
@@ -269,6 +271,7 @@ export function CreditsPurchaseModal({
                   </span>
                 </div>
               </div>
+              )}
 
               {/* Purchase Button */}
               <Button
