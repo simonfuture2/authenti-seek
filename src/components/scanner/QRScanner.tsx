@@ -22,17 +22,21 @@ export function QRScanner({ onScan, onError }: QRScannerProps) {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Try to enumerate cameras, but don't block scanner if this fails
+    // Some mobile browsers support getUserMedia but not enumerateDevices
     Html5Qrcode.getCameras()
       .then((devices) => {
         if (devices && devices.length > 0) {
           setCameras(devices);
           setHasPermission(true);
         } else {
-          setHasPermission(false);
+          // No cameras enumerated, but we can still try facingMode
+          setHasPermission(true);
         }
       })
       .catch(() => {
-        setHasPermission(false);
+        // getCameras failed, but we can still attempt to start with facingMode
+        setHasPermission(true);
       });
 
     return () => {
@@ -41,7 +45,10 @@ export function QRScanner({ onScan, onError }: QRScannerProps) {
   }, []);
 
   const startScanner = async () => {
-    if (!containerRef.current || cameras.length === 0) return;
+    if (!containerRef.current) return;
+
+    // Stop any existing scanner first
+    await stopScanner();
 
     try {
       const scanner = new Html5Qrcode("qr-reader", {
@@ -50,14 +57,22 @@ export function QRScanner({ onScan, onError }: QRScannerProps) {
       });
       scannerRef.current = scanner;
 
-      const cameraId = cameras[currentCameraIndex]?.id;
+      // Use facingMode constraint instead of camera ID for better mobile compatibility
+      // Camera IDs can be stale or cause NotReadableError on many Android devices
+      const cameraConfig = cameras.length > 1 && currentCameraIndex > 0
+        ? { deviceId: { exact: cameras[currentCameraIndex].id } }
+        : { facingMode: "environment" };
+
+      const qrboxSize = Math.min(
+        containerRef.current.clientWidth * 0.7,
+        250
+      );
 
       await scanner.start(
-        cameraId,
+        cameraConfig,
         {
           fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1,
+          qrbox: { width: qrboxSize, height: qrboxSize },
         },
         (decodedText) => {
           handleScanSuccess(decodedText);
@@ -68,7 +83,42 @@ export function QRScanner({ onScan, onError }: QRScannerProps) {
       setIsScanning(true);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to start camera";
-      // Gracefully fall back to manual input instead of showing an alarming error
+      console.warn("QR Scanner camera error:", errorMessage);
+
+      // If using facingMode failed, try with specific camera ID as fallback
+      if (cameras.length > 0 && !scannerRef.current) {
+        try {
+          const fallbackScanner = new Html5Qrcode("qr-reader", {
+            formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+            verbose: false,
+          });
+          scannerRef.current = fallbackScanner;
+
+          const qrboxSize = Math.min(
+            (containerRef.current?.clientWidth ?? 300) * 0.7,
+            250
+          );
+
+          await fallbackScanner.start(
+            cameras[0].id,
+            {
+              fps: 10,
+              qrbox: { width: qrboxSize, height: qrboxSize },
+            },
+            (decodedText) => {
+              handleScanSuccess(decodedText);
+            },
+            () => {}
+          );
+
+          setIsScanning(true);
+          return;
+        } catch {
+          // Fallback also failed
+        }
+      }
+
+      // All attempts failed — fall back to manual input
       setHasPermission(false);
       onError?.(errorMessage);
     }
