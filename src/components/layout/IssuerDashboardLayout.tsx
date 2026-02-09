@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useWallet } from "@solana/wallet-adapter-react";
 import {
-  Shield,
   PlusCircle,
   Send,
   BarChart3,
@@ -14,6 +13,7 @@ import {
   User,
   FileImage,
 } from "lucide-react";
+import authentisealIcon from "@/assets/authentiseal-icon.png";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
@@ -63,9 +63,7 @@ export function IssuerDashboardLayout({ children }: DashboardLayoutProps) {
         {/* Logo */}
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-solana-gradient">
-              <Shield className="h-6 w-6 text-white" />
-            </div>
+            <img src={authentisealIcon} alt="AuthentiSeal" className="h-9 w-9 rounded-lg" />
             <span className="text-xl font-bold gradient-text">AuthentiSeal</span>
             <NetworkBadge compact />
           </div>
@@ -157,7 +155,7 @@ export function IssuerDashboardLayout({ children }: DashboardLayoutProps) {
             <Menu className="h-6 w-6" />
           </button>
           <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
+            <img src={authentisealIcon} alt="AuthentiSeal" className="h-7 w-7 rounded" />
             <span className="font-semibold gradient-text">AuthentiSeal</span>
             <NetworkBadge compact />
           </div>
