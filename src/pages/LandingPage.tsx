@@ -166,7 +166,10 @@ export function LandingPage() {
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={authentisealIcon} alt="AuthentiSeal" className="h-9 w-9 rounded-lg" />
-            <span className="text-xl font-bold gradient-text">AuthentiSeal</span>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold gradient-text leading-tight">AuthentiSeal</span>
+              <SolPriceTicker compact />
+            </div>
           </div>
           <div className="hidden md:flex items-center gap-8">
             <Link to="/verify" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -186,7 +189,6 @@ export function LandingPage() {
             </a>
           </div>
           <div className="flex items-center gap-2">
-            <SolPriceTicker compact />
             <ThemeToggle compact />
             <Link to="/auth" className="hidden md:inline-flex">
               <Button className="bg-solana-gradient hover:opacity-90">

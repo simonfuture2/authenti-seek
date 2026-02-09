@@ -66,7 +66,10 @@ export function VerifierDashboardLayout({ children }: DashboardLayoutProps) {
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={authentisealIcon} alt="AuthentiSeal" className="h-9 w-9 rounded-lg" />
-            <span className="text-xl font-bold gradient-text">AuthentiSeal</span>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold gradient-text leading-tight">AuthentiSeal</span>
+              <SolPriceTicker compact />
+            </div>
             <NetworkBadge compact />
           </div>
           <button
@@ -118,13 +121,10 @@ export function VerifierDashboardLayout({ children }: DashboardLayoutProps) {
           ))}
         </nav>
 
-        {/* Theme, Credits & SOL Price */}
-        <div className="px-4 py-2 space-y-2">
-          <SolPriceTicker />
-          <div className="flex items-center justify-between">
-            <CreditsDisplay compact />
-            <ThemeToggle compact />
-          </div>
+        {/* Theme & Credits */}
+        <div className="px-4 py-2 flex items-center justify-between">
+          <CreditsDisplay compact />
+          <ThemeToggle compact />
         </div>
 
         {/* Wallet connection */}
@@ -162,11 +162,11 @@ export function VerifierDashboardLayout({ children }: DashboardLayoutProps) {
           </button>
           <div className="flex items-center gap-2">
             <img src={authentisealIcon} alt="AuthentiSeal" className="h-7 w-7 rounded" />
-            <span className="font-semibold gradient-text">AuthentiSeal</span>
+            <div className="flex flex-col">
+              <span className="font-semibold gradient-text leading-tight">AuthentiSeal</span>
+              <SolPriceTicker compact />
+            </div>
             <NetworkBadge compact />
-          </div>
-          <div className="ml-auto">
-            <SolPriceTicker compact />
           </div>
         </header>
 
