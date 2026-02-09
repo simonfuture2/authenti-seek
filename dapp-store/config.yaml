@@ -7,13 +7,13 @@
 publisher:
   # Your publisher name (will appear on dApp Store)
   name: "AuthentiSeal"
-  
+
   # Publisher website
-  website: "https://authentiseal.app"
-  
+  website: "https://www.authentiseal.xyz"
+
   # Contact email for app review team
-  email: "" # TODO: Add your contact email
-  
+  email: "simon@w3mct.club"
+
   # Publisher address (Solana wallet that owns Publisher NFT)
   address: "" # TODO: Add your Solana wallet address
 
@@ -24,46 +24,46 @@ app:
   # Unique app identifier (cannot be changed after first publish)
   # Format: reverse domain notation
   package_name: "app.authentiseal.coa"
-  
+
   # App name displayed on dApp Store
   name: "AuthentiSeal"
-  
+
   # Short tagline (max 80 characters)
-  short_description: "Blockchain Certificates of Authenticity for Physical Products"
-  
+  short_description: "Blockchain Certificates of Authenticity for Physical Products (RWA)"
+
   # Full description (max 4000 characters)
   long_description: |
     AuthentiSeal is the premier Certificate of Authenticity (COA) platform built on Solana.
-    
+
     🔐 VERIFY AUTHENTICITY
     Scan QR codes or NFC tags to instantly verify product authenticity against blockchain records.
-    
+
     📜 ISSUE CERTIFICATES  
     Create beautiful, tamper-proof certificates with AI-assisted descriptions and custom seals.
-    
+
     🎨 MINT AS NFTS
     Store certificates on-chain as visual NFTs or privacy-preserving memo records.
-    
+
     ✅ AI-POWERED VERIFICATION
     Advanced image comparison and attribute matching for comprehensive authenticity checks.
-    
+
     💳 PAY WITH SOL
     Purchase credits using Solana for certificate creation and verification.
-    
+
     Built for the Solana Seeker and optimized for mobile-first experience.
-  
+
   # App category
   category: "utilities"
-  
+
   # Content rating
   content_rating: "everyone"
-  
+
   # App icon (512x512 PNG)
   icon: "media/icon-512.png"
-  
+
   # Feature banner (1200x600 PNG)
   banner: "media/banner-1200x600.png"
-  
+
   # Screenshots (up to 8, recommended 1080x1920 for mobile)
   screenshots:
     - "media/screenshot-1-landing.png"
@@ -77,23 +77,23 @@ app:
 release:
   # Version code (must increment with each release)
   version_code: 1
-  
+
   # Version name (human readable)
   version_name: "1.0.0"
-  
+
   # Path to signed release APK
   apk: "files/authentiseal-v1.0.0.apk"
-  
+
   # Minimum Android SDK version
   min_sdk: 24
-  
-  # Target Android SDK version  
+
+  # Target Android SDK version
   target_sdk: 34
-  
+
   # Release notes (shown to users)
   release_notes: |
     Initial release of AuthentiSeal for Solana dApp Store.
-    
+
     Features:
     - Certificate creation with AI-assisted descriptions
     - QR code and NFC verification
@@ -101,14 +101,14 @@ release:
     - Privacy memo mode for cost-efficient storage
     - Mobile Wallet Adapter support
     - Credit system with SOL payments
-  
+
   # Testing instructions for app review team (not public)
   testing_instructions: |
     1. Connect a Solana wallet (Phantom or Solflare recommended)
     2. Navigate to "Create COA" to test certificate creation
     3. Use the QR scanner in "Verify" to scan a certificate
     4. Test the wallet connection on Android with MWA
-    
+
     Test wallet: Request devnet SOL from faucet if needed.
     No special test accounts required - app uses Devnet.
 
@@ -125,8 +125,8 @@ localization:
 # ============================================
 permissions:
   - android.permission.INTERNET
-  - android.permission.CAMERA  # For QR scanning
-  - android.permission.NFC     # For NFC tag reading
+  - android.permission.CAMERA # For QR scanning
+  - android.permission.NFC # For NFC tag reading
 
 features:
   - name: "android.hardware.camera"
