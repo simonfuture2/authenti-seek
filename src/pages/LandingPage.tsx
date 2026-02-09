@@ -26,6 +26,7 @@ import {
 import { MobileNav } from "@/components/layout/MobileNav";
 import { SolPriceTicker } from "@/components/wallet/SolPriceTicker";
 import { useSolPrice } from "@/hooks/useSolPrice";
+import { EcosystemBadge } from "@/components/ecosystem/EcosystemBadge";
 
 const features = [
   {
@@ -510,6 +511,15 @@ export function LandingPage() {
                 Sign In
               </Link>
             </div>
+
+            {/* Ecosystem Links */}
+            <div className="flex flex-col items-center gap-2 pt-2">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Ecosystem</p>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <EcosystemBadge app="collectai" variant="inline" />
+              </div>
+            </div>
+
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Globe className="h-4 w-4" />
               <span>© 2025 AuthentiSeal. All rights reserved.</span>

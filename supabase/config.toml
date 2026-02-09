@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.purchase-credits]
 verify_jwt = false
+
+[functions.verify-public]
+verify_jwt = false
