@@ -164,40 +164,43 @@ export function LandingPage() {
     <div className="min-h-screen bg-background">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={authentisealIcon} alt="AuthentiSeal" className="h-9 w-9 rounded-lg" />
-            <div className="flex flex-col">
-              <span className="text-xl font-bold gradient-text leading-tight">AuthentiSeal</span>
-              <SolPriceTicker compact />
-            </div>
-          </div>
-          <div className="hidden md:flex items-center gap-8">
-            <Link to="/verify" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2.5 shrink-0">
+            <img src={authentisealIcon} alt="AuthentiSeal" className="h-8 w-8 rounded-lg" />
+            <span className="text-lg font-bold gradient-text leading-none">AuthentiSeal</span>
+          </Link>
+
+          {/* Desktop nav links */}
+          <div className="hidden lg:flex items-center gap-6">
+            <Link to="/verify" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap">
               Verify Product
             </Link>
-            <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap">
               Features
             </a>
-            <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap">
               How It Works
             </a>
-            <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap">
               Pricing
             </a>
-            <a href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <a href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap">
               FAQ
             </a>
-            <Link to="/developers" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link to="/developers" className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap">
               Developers
             </Link>
           </div>
-          <div className="flex items-center gap-2">
+
+          {/* Right side actions */}
+          <div className="flex items-center gap-2 shrink-0">
+            <SolPriceTicker compact className="hidden sm:inline-flex" />
             <ThemeToggle compact />
-            <Link to="/auth" className="hidden md:inline-flex">
-              <Button className="bg-solana-gradient hover:opacity-90">
+            <Link to="/auth" className="hidden lg:inline-flex">
+              <Button size="sm" className="bg-solana-gradient hover:opacity-90">
                 Get Started
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <ArrowRight className="ml-1.5 h-4 w-4" />
               </Button>
             </Link>
             <MobileNav
