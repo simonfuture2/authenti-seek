@@ -22,6 +22,7 @@ import {
   Wand2,
   BarChart3,
   ShieldCheck,
+  ScanSearch,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,6 +72,8 @@ import { useNFTMinting } from "@/hooks/useNFTMinting";
 // Verification data components
 import { PhysicalAttributesForm } from "@/components/issuer/PhysicalAttributesForm";
 import { UniqueIdentifiersForm } from "@/components/issuer/UniqueIdentifiersForm";
+import { useCollectAIIdentify, CollectAIResult } from "@/hooks/useCollectAIIdentify";
+import { CollectAIIdentifyButton } from "@/components/ecosystem/CollectAIIdentifyButton";
 
 const createCertificateSchema = z.object({
   serial_number: z.string().min(3, "Serial number must be at least 3 characters").max(50),
@@ -137,9 +140,30 @@ export function CreateCOAPage() {
   } = useCertificateAI();
   const { uploadCertificateImage, uploading: uploadingCertImage } = useCertificateImageUpload();
   const { credits, refetchCredits } = useCredits();
+  const { identify, isIdentifying, result: collectAIResult, clearResult: clearCollectAIResult } = useCollectAIIdentify();
   
   const AI_SEAL_CREDIT_COST = 0.5;
   const hasEnoughCreditsForSeal = (credits?.balance ?? 0) >= AI_SEAL_CREDIT_COST;
+
+  const handleCollectAIIdentify = async () => {
+    if (productImages.length === 0) return;
+    await identify(productImages[0]);
+  };
+
+  const handleApplyCollectAIResult = (result: CollectAIResult) => {
+    if (result.name) form.setValue("product_name", result.name);
+    if (result.description) form.setValue("product_description", result.description);
+    if (result.category) {
+      // Map CollectAI category to our categories
+      const matchedCategory = categories.find(
+        (c) => c.toLowerCase() === result.category?.toLowerCase()
+      );
+      if (matchedCategory) {
+        form.setValue("product_category", matchedCategory);
+      }
+    }
+    toast({ title: "CollectAI data applied to certificate fields" });
+  };
 
   const form = useForm<CreateCertificateForm>({
     resolver: zodResolver(createCertificateSchema),
@@ -688,7 +712,18 @@ export function CreateCOAPage() {
                                 placeholder="Describe the product, its unique features, materials, etc."
                                 className="pl-10 min-h-[100px]"
                               />
-                            </div>
+                    </div>
+
+                    {/* CollectAI Auto-Identify */}
+                    <CollectAIIdentifyButton
+                      onIdentify={handleCollectAIIdentify}
+                      isIdentifying={isIdentifying}
+                      result={collectAIResult}
+                      onClearResult={clearCollectAIResult}
+                      onApplyResult={handleApplyCollectAIResult}
+                      disabled={createCertificate.isPending}
+                      hasImage={productImages.length > 0}
+                    />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -920,6 +955,10 @@ export function CreateCOAPage() {
                     <li className="flex items-center gap-2">
                       <ImageIcon className="h-4 w-4 text-primary" />
                       Dynamic certificate generation
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <ScanSearch className="h-4 w-4 text-primary" />
+                      CollectAI auto-identification
                     </li>
                   </ul>
                 </CardContent>
