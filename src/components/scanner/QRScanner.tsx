@@ -68,14 +68,9 @@ export function QRScanner({ onScan, onError }: QRScannerProps) {
       setIsScanning(true);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to start camera";
-      toast({
-        title: "Camera Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      // Gracefully fall back to manual input instead of showing an alarming error
+      setHasPermission(false);
       onError?.(errorMessage);
-      // Auto-show manual input on camera failure
-      setShowManualInput(true);
     }
   };
 
