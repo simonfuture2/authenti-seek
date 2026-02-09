@@ -4,6 +4,7 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import authentisealIcon from "@/assets/authentiseal-icon.png";
 import { SolPriceTicker } from "@/components/wallet/SolPriceTicker";
+import { createPortal } from "react-dom";
 
 interface MobileNavProps {
   links: { label: string; href: string; isRoute?: boolean }[];
@@ -12,32 +13,22 @@ interface MobileNavProps {
 export function MobileNav({ links }: MobileNavProps) {
   const [open, setOpen] = useState(false);
 
-  return (
-    <div className="lg:hidden">
-      <button
-        onClick={() => setOpen(!open)}
-        className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-        aria-label="Toggle menu"
-      >
-        {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-      </button>
-
-      {/* Full-screen overlay menu */}
-      {open && (
-        <div className="fixed inset-0 z-[100] bg-background/98 backdrop-blur-xl animate-fade-in">
+  const overlay = open
+    ? createPortal(
+        <div className="fixed inset-0 z-[200] bg-background animate-fade-in">
           <div className="flex flex-col h-full">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <div className="flex items-center gap-3">
-                <img src={authentisealIcon} alt="AuthentiSeal" className="h-9 w-9 rounded-lg" />
+            <div className="flex items-center justify-between px-4 h-16 border-b border-border">
+              <div className="flex items-center gap-2.5">
+                <img src={authentisealIcon} alt="AuthentiSeal" className="h-8 w-8 rounded-lg" />
                 <div className="flex flex-col">
-                  <span className="text-xl font-bold gradient-text leading-tight">AuthentiSeal</span>
+                  <span className="text-lg font-bold gradient-text leading-tight">AuthentiSeal</span>
                   <SolPriceTicker compact />
                 </div>
               </div>
               <button
                 onClick={() => setOpen(false)}
-                className="p-2 text-muted-foreground hover:text-foreground"
+                className="p-2 text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Close menu"
               >
                 <X className="h-6 w-6" />
@@ -78,8 +69,21 @@ export function MobileNav({ links }: MobileNavProps) {
               </Link>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+        document.body
+      )
+    : null;
+
+  return (
+    <div className="lg:hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+        aria-label="Toggle menu"
+      >
+        <Menu className="h-6 w-6" />
+      </button>
+      {overlay}
     </div>
   );
 }
