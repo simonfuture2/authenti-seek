@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Image, Lock, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MINTING_COSTS, MintingMode } from "@/lib/metaplex";
+import { useSolPrice } from "@/hooks/useSolPrice";
 import {
   Tooltip,
   TooltipContent,
@@ -21,6 +22,8 @@ export function MintModeSelector({
   onChange,
   disabled,
 }: MintModeSelectorProps) {
+  const { solToUsd } = useSolPrice();
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
@@ -74,6 +77,11 @@ export function MintModeSelector({
               </p>
               <p className="text-xs font-mono text-primary mt-1">
                 ~{MINTING_COSTS.nft.solAmount} SOL
+                {solToUsd(MINTING_COSTS.nft.solAmount) && (
+                  <span className="text-muted-foreground ml-1">
+                    ({solToUsd(MINTING_COSTS.nft.solAmount)})
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -118,6 +126,11 @@ export function MintModeSelector({
               </p>
               <p className="text-xs font-mono text-success mt-1">
                 ~{MINTING_COSTS.memo.solAmount} SOL
+                {solToUsd(MINTING_COSTS.memo.solAmount) && (
+                  <span className="text-muted-foreground ml-1">
+                    ({solToUsd(MINTING_COSTS.memo.solAmount)})
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -138,6 +151,11 @@ export function MintModeSelector({
             {value === "nft"
               ? `~${MINTING_COSTS.nft.solAmount} SOL`
               : `~${MINTING_COSTS.memo.solAmount} SOL`}
+            {solToUsd(value === "nft" ? MINTING_COSTS.nft.solAmount : MINTING_COSTS.memo.solAmount) && (
+              <span className="text-muted-foreground ml-1">
+                ({solToUsd(value === "nft" ? MINTING_COSTS.nft.solAmount : MINTING_COSTS.memo.solAmount)})
+              </span>
+            )}
           </span>
         </div>
         <p className="text-xs text-muted-foreground mt-1">

@@ -26,6 +26,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useCredits, CreditPackage } from "@/hooks/useCredits";
+import { useSolPrice } from "@/hooks/useSolPrice";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { useToast } from "@/hooks/use-toast";
 
@@ -47,6 +48,7 @@ export function CreditsPurchaseModal({
   const { connected, publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
   const { toast } = useToast();
+  const { solToUsd, solPrice } = useSolPrice();
 
   const [selectedPackage, setSelectedPackage] = useState<CreditPackage | null>(
     null
@@ -149,6 +151,11 @@ export function CreditsPurchaseModal({
           <DialogDescription>
             Buy credits to create certificates and verify products. Pay with
             Solana.
+            {solPrice && (
+              <span className="block mt-1 text-xs font-mono text-primary">
+                SOL/USD: ${solPrice.toFixed(2)} (live from Solscan)
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -242,7 +249,9 @@ export function CreditsPurchaseModal({
                               {pkg.price_sol} SOL
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              ${pkg.price_usd}
+                              {pkg.price_sol && solToUsd(pkg.price_sol)
+                                ? solToUsd(pkg.price_sol)
+                                : `$${pkg.price_usd}`}
                             </div>
                           </div>
                         </div>
@@ -289,7 +298,7 @@ export function CreditsPurchaseModal({
                   <>
                     <Coins className="mr-2 h-5 w-5" />
                     {selectedPackage
-                      ? `Pay ${selectedPackage.price_sol} SOL`
+                      ? `Pay ${selectedPackage.price_sol} SOL${selectedPackage.price_sol && solToUsd(selectedPackage.price_sol) ? ` (${solToUsd(selectedPackage.price_sol)})` : ""}`
                       : "Select a Package"}
                   </>
                 )}
