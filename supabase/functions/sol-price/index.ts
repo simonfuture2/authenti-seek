@@ -6,19 +6,19 @@ const corsHeaders = {
 };
 
 // Cache the price for 5 minutes to avoid hitting rate limits
-let cachedPrice: { price: number; timestamp: number } | null = null;
-const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+let cachedPrice: { price: number; source: string; timestamp: number } | null = null;
+const CACHE_DURATION_MS = 5 * 60 * 1000;
 
 const SOL_TOKEN_ADDRESS = "So11111111111111111111111111111111111111112";
 
-async function fetchSolPrice(): Promise<number> {
+async function fetchSolPrice(): Promise<{ price: number; source: string }> {
   // Check cache first
   if (cachedPrice && Date.now() - cachedPrice.timestamp < CACHE_DURATION_MS) {
-    console.log("Returning cached SOL price:", cachedPrice.price);
-    return cachedPrice.price;
+    console.log("Returning cached SOL price:", cachedPrice.price, "from", cachedPrice.source);
+    return { price: cachedPrice.price, source: cachedPrice.source };
   }
 
-  // Try Solscan public API first
+  // Source 1: Solscan public API
   try {
     const response = await fetch(
       `https://public-api.solscan.io/market/token/${SOL_TOKEN_ADDRESS}`,
@@ -32,48 +32,65 @@ async function fetchSolPrice(): Promise<number> {
 
     if (response.ok) {
       const data = await response.json();
-      if (data?.priceUsdt || data?.price) {
-        const price = Number(data.priceUsdt || data.price);
-        if (price > 0) {
-          cachedPrice = { price, timestamp: Date.now() };
-          console.log("Fetched SOL price from Solscan:", price);
-          return price;
-        }
+      // The public API may return price in different fields
+      const price = Number(data?.priceUsdt ?? data?.price ?? data?.market_data?.current_price?.usd ?? 0);
+      if (price > 0) {
+        cachedPrice = { price, source: "solscan", timestamp: Date.now() };
+        console.log("Fetched SOL price from Solscan:", price);
+        return { price, source: "solscan" };
       }
+      console.warn("Solscan returned data but no valid price field. Keys:", Object.keys(data));
+    } else {
+      console.warn("Solscan API returned status:", response.status);
     }
-    console.warn("Solscan public API returned unexpected data, trying fallback");
   } catch (error) {
-    console.warn("Solscan public API failed:", error);
+    console.warn("Solscan API error:", error);
   }
 
-  // Fallback: CoinGecko free API
+  // Source 2: Jupiter Price API (Solana-native, free)
   try {
     const response = await fetch(
-      "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd",
-      {
-        headers: {
-          "Accept": "application/json",
-        },
-      }
+      `https://api.jup.ag/price/v2?ids=${SOL_TOKEN_ADDRESS}`,
+      { headers: { "Accept": "application/json" } }
     );
 
     if (response.ok) {
       const data = await response.json();
-      const price = data?.solana?.usd;
-      if (price && price > 0) {
-        cachedPrice = { price, timestamp: Date.now() };
-        console.log("Fetched SOL price from CoinGecko fallback:", price);
-        return price;
+      const price = Number(data?.data?.[SOL_TOKEN_ADDRESS]?.price ?? 0);
+      if (price > 0) {
+        cachedPrice = { price, source: "jupiter", timestamp: Date.now() };
+        console.log("Fetched SOL price from Jupiter:", price);
+        return { price, source: "jupiter" };
       }
     }
   } catch (error) {
-    console.warn("CoinGecko fallback failed:", error);
+    console.warn("Jupiter API error:", error);
   }
 
-  // If we have a stale cache, return it rather than failing
+  // Source 3: CoinGecko free API
+  try {
+    const response = await fetch(
+      "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd",
+      { headers: { "Accept": "application/json" } }
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      const price = Number(data?.solana?.usd ?? 0);
+      if (price > 0) {
+        cachedPrice = { price, source: "coingecko", timestamp: Date.now() };
+        console.log("Fetched SOL price from CoinGecko:", price);
+        return { price, source: "coingecko" };
+      }
+    }
+  } catch (error) {
+    console.warn("CoinGecko API error:", error);
+  }
+
+  // Return stale cache if all sources fail
   if (cachedPrice) {
-    console.warn("All APIs failed, returning stale cached price:", cachedPrice.price);
-    return cachedPrice.price;
+    console.warn("All APIs failed, returning stale cache:", cachedPrice.price);
+    return { price: cachedPrice.price, source: cachedPrice.source };
   }
 
   throw new Error("Unable to fetch SOL price from any source");
@@ -85,7 +102,7 @@ serve(async (req) => {
   }
 
   try {
-    const price = await fetchSolPrice();
+    const { price, source } = await fetchSolPrice();
 
     return new Response(
       JSON.stringify({
@@ -93,8 +110,8 @@ serve(async (req) => {
         price_usd: price,
         currency: "USD",
         token: "SOL",
-        source: "solscan",
-        cached: cachedPrice ? Date.now() - cachedPrice.timestamp < 1000 ? false : true : false,
+        source,
+        cached: cachedPrice ? Date.now() - cachedPrice.timestamp > 1000 : false,
         fetched_at: new Date().toISOString(),
       }),
       {
