@@ -50,6 +50,7 @@ interface OnChainResult {
   verified: boolean;
   slot: number;
   blockTime: number | null;
+  cluster?: string;
 }
 
 export function PublicVerifyPage() {
@@ -512,6 +513,14 @@ export function PublicVerifyPage() {
                             </div>
                             {onChainResult.verified && (
                               <div className="space-y-1 text-sm text-muted-foreground">
+                                {onChainResult.cluster && (
+                                  <div className="flex items-center gap-2">
+                                    <Shield className="h-3 w-3" />
+                                    <span className="capitalize">
+                                      Network: {onChainResult.cluster}
+                                    </span>
+                                  </div>
+                                )}
                                 {onChainResult.blockTime && (
                                   <div className="flex items-center gap-2">
                                     <Clock className="h-3 w-3" />

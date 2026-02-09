@@ -12,6 +12,9 @@ import { clusterApiUrl } from "@solana/web3.js";
 // Solana Memo Program ID
 const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
 
+// Metaplex Token Metadata Program ID
+const METAPLEX_PROGRAM_ID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
+
 const SOLANA_NETWORK = SOLANA_RPC_ENDPOINT;
 
 export interface CertificateOnChainData {
@@ -196,7 +199,10 @@ async function _verifyOnCluster(
 
   if (!tx) return null; // Not found on this cluster
 
-  // Extract memo data from transaction
+  // Check if the transaction was successful (no error)
+  const txSucceeded = tx.meta?.err === null;
+
+  // Try Memo-based verification first
   const memoInstruction = tx.transaction.message.compiledInstructions?.find(
     (ix) => {
       const programId = tx.transaction.message.staticAccountKeys[ix.programIdIndex];
@@ -204,53 +210,83 @@ async function _verifyOnCluster(
     }
   );
 
-  if (!memoInstruction) {
+  if (memoInstruction) {
+    // Decode memo data
+    const memoDataBuffer = Buffer.from(memoInstruction.data);
+    const memoDataString = memoDataBuffer.toString("utf-8");
+    let parsedData: Record<string, unknown>;
+
+    try {
+      const rawData = JSON.parse(memoDataString);
+
+      // Handle both new minimal format (t: "AS") and legacy format (type: "COA_CERTIFICATE")
+      if (rawData.t === "AS") {
+        parsedData = {
+          type: "COA_CERTIFICATE",
+          hash: rawData.h,
+          hasNfc: !!rawData.n,
+        };
+      } else if (rawData.type === "COA_CERTIFICATE") {
+        parsedData = {
+          type: rawData.type,
+          hash: rawData.hash,
+        };
+      } else {
+        parsedData = { raw: memoDataString };
+      }
+    } catch {
+      parsedData = { raw: memoDataString };
+    }
+
+    // Verify hash if expected hash is provided
+    const verified = expectedHash
+      ? parsedData.hash === expectedHash
+      : parsedData.type === "COA_CERTIFICATE";
+
     return {
-      verified: false,
-      onChainData: null,
+      verified,
+      onChainData: {
+        verified,
+        recordFound: true,
+        txType: "memo",
+        cluster,
+      },
       blockTime: tx.blockTime,
       slot: tx.slot,
       cluster,
     };
   }
 
-  // Decode memo data
-  const memoDataBuffer = Buffer.from(memoInstruction.data);
-  const memoDataString = memoDataBuffer.toString("utf-8");
-  let parsedData: Record<string, unknown>;
-
-  try {
-    const rawData = JSON.parse(memoDataString);
-
-    // Handle both new minimal format (t: "AS") and legacy format (type: "COA_CERTIFICATE")
-    if (rawData.t === "AS") {
-      parsedData = {
-        type: "COA_CERTIFICATE",
-        hash: rawData.h,
-        hasNfc: !!rawData.n,
-      };
-    } else if (rawData.type === "COA_CERTIFICATE") {
-      parsedData = {
-        type: rawData.type,
-        hash: rawData.hash,
-      };
-    } else {
-      parsedData = { raw: memoDataString };
+  // Check for Metaplex NFT mint transaction
+  const hasMetaplexInstruction = tx.transaction.message.compiledInstructions?.some(
+    (ix) => {
+      const programId = tx.transaction.message.staticAccountKeys[ix.programIdIndex];
+      return programId.equals(METAPLEX_PROGRAM_ID);
     }
-  } catch {
-    parsedData = { raw: memoDataString };
+  );
+
+  if (hasMetaplexInstruction && txSucceeded) {
+    return {
+      verified: true,
+      onChainData: {
+        verified: true,
+        recordFound: true,
+        txType: "nft_mint",
+        cluster,
+      },
+      blockTime: tx.blockTime,
+      slot: tx.slot,
+      cluster,
+    };
   }
 
-  // Verify hash if expected hash is provided
-  const verified = expectedHash
-    ? parsedData.hash === expectedHash
-    : parsedData.type === "COA_CERTIFICATE";
-
+  // Transaction found but unrecognized program — still confirm it exists
   return {
-    verified,
+    verified: txSucceeded,
     onChainData: {
-      verified,
+      verified: txSucceeded,
       recordFound: true,
+      txType: "unknown",
       cluster,
     },
     blockTime: tx.blockTime,
