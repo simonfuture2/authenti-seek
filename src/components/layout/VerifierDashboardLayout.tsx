@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { CreditsDisplay } from "@/components/credits/CreditsDisplay";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { NetworkBadge } from "@/components/wallet/NetworkBadge";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -66,6 +67,7 @@ export function VerifierDashboardLayout({ children }: DashboardLayoutProps) {
               <CheckCircle2 className="h-6 w-6 text-white" />
             </div>
             <span className="text-xl font-bold gradient-text">AuthentiSeal</span>
+            <NetworkBadge compact />
           </div>
           <button
             className="lg:hidden text-muted-foreground hover:text-foreground"
@@ -157,6 +159,7 @@ export function VerifierDashboardLayout({ children }: DashboardLayoutProps) {
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-secondary" />
             <span className="font-semibold gradient-text">AuthentiSeal</span>
+            <NetworkBadge compact />
           </div>
         </header>
 
