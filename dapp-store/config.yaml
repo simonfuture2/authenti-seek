@@ -68,7 +68,10 @@ app:
   screenshots:
     - "media/screenshot-1-landing.png"
     - "media/screenshot-2-verify.png"
+    - "media/screenshot-3-verify-input.png"
+    - "media/screenshot-2-verify-full.png"
     - "media/screenshot-3-certificate.png"
+    - "media/screenshot-4-certificate-detail.png"
     - "media/screenshot-4-mint.png"
 
 # ============================================
