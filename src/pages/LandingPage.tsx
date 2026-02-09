@@ -14,6 +14,7 @@ import {
   Globe,
 } from "lucide-react";
 import authentisealIcon from "@/assets/authentiseal-icon.png";
+import authentisealBanner from "@/assets/authentiseal-banner.png";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -242,6 +243,22 @@ export function LandingPage() {
                   Learn How It Works
                 </Button>
               </a>
+            </div>
+          </motion.div>
+
+          {/* Banner */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="mt-12 max-w-4xl mx-auto"
+          >
+            <div className="rounded-2xl overflow-hidden border border-border/50 shadow-2xl shadow-primary/10">
+              <img
+                src={authentisealBanner}
+                alt="AuthentiSeal - Blockchain Certificates of Authenticity"
+                className="w-full h-auto"
+              />
             </div>
           </motion.div>
 
