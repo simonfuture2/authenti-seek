@@ -48,7 +48,12 @@ export function CreditsPurchaseModal({
   const { connected, publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
   const { toast } = useToast();
-  const { solToUsd, solPrice } = useSolPrice();
+  const { solToUsd, solPrice, usdToSol } = useSolPrice();
+
+  // Helper to get the live SOL price for a package
+  const getPackageSolPrice = (pkg: CreditPackage): number | null => {
+    return usdToSol(pkg.price_usd);
+  };
 
   const [selectedPackage, setSelectedPackage] = useState<CreditPackage | null>(
     null
@@ -66,10 +71,11 @@ export function CreditsPurchaseModal({
       return;
     }
 
-    if (!selectedPackage.price_sol) {
+    const liveSolPrice = getPackageSolPrice(selectedPackage);
+    if (!liveSolPrice) {
       toast({
         title: "Price Not Available",
-        description: "SOL price not set for this package.",
+        description: "Unable to fetch current SOL price. Please try again.",
         variant: "destructive",
       });
       return;
@@ -78,8 +84,8 @@ export function CreditsPurchaseModal({
     setIsPurchasing(true);
 
     try {
-      // Create transfer transaction
-      const lamports = Math.floor(selectedPackage.price_sol * LAMPORTS_PER_SOL);
+      // Create transfer transaction using live-calculated SOL amount
+      const lamports = Math.floor(liveSolPrice * LAMPORTS_PER_SOL);
 
       const transaction = new Transaction().add(
         SystemProgram.transfer({
@@ -246,12 +252,12 @@ export function CreditsPurchaseModal({
                           </div>
                           <div className="text-right">
                             <div className="text-2xl font-bold gradient-text">
-                              {pkg.price_sol} SOL
+                              {getPackageSolPrice(pkg) !== null
+                                ? `${getPackageSolPrice(pkg)} SOL`
+                                : "..."}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              {pkg.price_sol && solToUsd(pkg.price_sol)
-                                ? solToUsd(pkg.price_sol)
-                                : `$${pkg.price_usd}`}
+                              ${pkg.price_usd}
                             </div>
                           </div>
                         </div>
@@ -298,7 +304,7 @@ export function CreditsPurchaseModal({
                   <>
                     <Coins className="mr-2 h-5 w-5" />
                     {selectedPackage
-                      ? `Pay ${selectedPackage.price_sol} SOL${selectedPackage.price_sol && solToUsd(selectedPackage.price_sol) ? ` (${solToUsd(selectedPackage.price_sol)})` : ""}`
+                      ? `Pay ${getPackageSolPrice(selectedPackage) ?? "..."} SOL ($${selectedPackage.price_usd})`
                       : "Select a Package"}
                   </>
                 )}

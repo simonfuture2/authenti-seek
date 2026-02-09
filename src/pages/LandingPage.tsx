@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/accordion";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { SolPriceTicker } from "@/components/wallet/SolPriceTicker";
+import { useSolPrice } from "@/hooks/useSolPrice";
 
 const features = [
   {
@@ -85,7 +86,6 @@ const pricingPlans = [
     name: "Starter",
     credits: 50,
     priceUsd: 25,
-    priceSol: 0.15,
     features: [
       "50 credits",
       "Create up to 50 certificates",
@@ -98,7 +98,6 @@ const pricingPlans = [
     name: "Pro",
     credits: 200,
     priceUsd: 75,
-    priceSol: 0.45,
     features: [
       "200 credits",
       "Create up to 200 certificates",
@@ -112,7 +111,6 @@ const pricingPlans = [
     name: "Enterprise",
     credits: 1000,
     priceUsd: 300,
-    priceSol: 1.8,
     features: [
       "1000 credits",
       "Unlimited certificates",
@@ -159,6 +157,8 @@ const faqs = [
 ];
 
 export function LandingPage() {
+  const { usdToSolFormatted } = useSolPrice();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
@@ -392,7 +392,7 @@ export function LandingPage() {
                   <span className="text-muted-foreground"> / {plan.credits} credits</span>
                 </div>
                 <p className="text-sm text-muted-foreground mb-6">
-                  or {plan.priceSol} SOL
+                  or {usdToSolFormatted(plan.priceUsd) ?? "loading..."} 
                 </p>
                 <ul className="space-y-3 mb-8">
                   {plan.features.map((feature) => (

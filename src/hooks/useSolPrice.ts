@@ -44,10 +44,29 @@ export function useSolPrice() {
     return usd < 0.01 ? `<$0.01` : `~$${usd.toFixed(2)}`;
   };
 
+  /**
+   * Convert USD amount to SOL amount (number)
+   */
+  const usdToSol = (usdAmount: number): number | null => {
+    if (!query.data || query.data === 0) return null;
+    return parseFloat((usdAmount / query.data).toFixed(4));
+  };
+
+  /**
+   * Convert USD amount to formatted SOL string
+   */
+  const usdToSolFormatted = (usdAmount: number): string | null => {
+    const sol = usdToSol(usdAmount);
+    if (sol === null) return null;
+    return `${sol} SOL`;
+  };
+
   return {
     solPrice: query.data ?? null,
     isLoading: query.isLoading,
     isError: query.isError,
     solToUsd,
+    usdToSol,
+    usdToSolFormatted,
   };
 }
