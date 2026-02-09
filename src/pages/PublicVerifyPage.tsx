@@ -18,6 +18,7 @@ import {
   Calendar,
   Tag,
 } from "lucide-react";
+import authentisealIcon from "@/assets/authentiseal-icon.png";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -217,9 +218,7 @@ export function PublicVerifyPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-solana-gradient">
-              <Shield className="h-5 w-5 text-white" />
-            </div>
+            <img src={authentisealIcon} alt="AuthentiSeal" className="h-9 w-9 rounded-lg" />
             <span className="text-xl font-bold gradient-text">AuthentiSeal</span>
           </Link>
           <Link to="/auth">
@@ -593,9 +592,7 @@ export function PublicVerifyPage() {
       <footer className="py-8 px-4 border-t border-border">
         <div className="container mx-auto text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-2 rounded-lg bg-solana-gradient">
-              <Shield className="h-4 w-4 text-white" />
-            </div>
+            <img src={authentisealIcon} alt="AuthentiSeal" className="h-7 w-7 rounded-lg" />
             <span className="font-bold gradient-text">AuthentiSeal</span>
           </div>
           <p className="text-xs text-muted-foreground">

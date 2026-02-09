@@ -2,7 +2,6 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
-  Shield,
   QrCode,
   Zap,
   Lock,
@@ -14,6 +13,7 @@ import {
   Users,
   Globe,
 } from "lucide-react";
+import authentisealIcon from "@/assets/authentiseal-icon.png";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -162,9 +162,7 @@ export function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-solana-gradient">
-              <Shield className="h-5 w-5 text-white" />
-            </div>
+            <img src={authentisealIcon} alt="AuthentiSeal" className="h-9 w-9 rounded-lg" />
             <span className="text-xl font-bold gradient-text">AuthentiSeal</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
@@ -472,9 +470,7 @@ export function LandingPage() {
         <div className="container mx-auto">
           <div className="flex flex-col items-center gap-6 text-center">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-solana-gradient">
-                <Shield className="h-5 w-5 text-white" />
-              </div>
+              <img src={authentisealIcon} alt="AuthentiSeal" className="h-9 w-9 rounded-lg" />
               <span className="text-xl font-bold gradient-text">AuthentiSeal</span>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-sm text-muted-foreground">

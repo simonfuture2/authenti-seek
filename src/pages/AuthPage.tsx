@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Shield } from "lucide-react";
 import { AuthForms } from "@/components/auth/AuthForms";
+import authentisealIcon from "@/assets/authentiseal-icon.png";
 
 export function AuthPage() {
   return (
@@ -21,9 +21,7 @@ export function AuthPage() {
           className="relative z-10"
         >
           <div className="flex items-center gap-3 mb-8">
-            <div className="p-3 rounded-xl bg-solana-gradient">
-              <Shield className="h-8 w-8 text-white" />
-            </div>
+            <img src={authentisealIcon} alt="AuthentiSeal" className="h-12 w-12 rounded-xl" />
             <span className="text-2xl font-bold gradient-text">AuthentiSeal</span>
           </div>
 
