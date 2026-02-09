@@ -15,6 +15,8 @@ export const ECOSYSTEM_APPS = {
     apiBaseUrl: "https://vfttlgqsexcdpxihtwzl.supabase.co/functions/v1",
     verifyApiUrl: (serial: string) =>
       `https://vfttlgqsexcdpxihtwzl.supabase.co/functions/v1/verify-public?serial=${encodeURIComponent(serial)}`,
+    collectaiIdentifyUrl:
+      "https://vfttlgqsexcdpxihtwzl.supabase.co/functions/v1/collectai-identify",
   },
   collectai: {
     name: "CollectAI",
@@ -28,6 +30,8 @@ export const ECOSYSTEM_APPS = {
       query
         ? `https://collectai.lovable.app/market?q=${encodeURIComponent(query)}`
         : `https://collectai.lovable.app/market`,
+    identifyApiUrl:
+      "https://irncxwszrawrndsdaqel.supabase.co/functions/v1/collectai-identify",
   },
 } as const;
 
