@@ -11,6 +11,10 @@ import {
   ArrowLeft,
   Save,
   Loader2,
+  Sun,
+  Moon,
+  Smartphone,
+  Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +25,64 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme, ThemeMode } from "@/contexts/ThemeContext";
+import { cn } from "@/lib/utils";
+
+const themeOptions: { value: ThemeMode; label: string; icon: React.ElementType; description: string; preview: string }[] = [
+  { value: "light", label: "Light", icon: Sun, description: "Clean, bright interface for everyday use", preview: "bg-white border-gray-200" },
+  { value: "dark", label: "Dark", icon: Moon, description: "Deep purple Solana-inspired dark theme", preview: "bg-[#0a0a14] border-purple-500/30" },
+  { value: "seeker", label: "Solana Seeker", icon: Smartphone, description: "Inspired by the Solana Seeker phone", preview: "bg-[#0a1410] border-emerald-500/30" },
+];
+
+function AppearanceSettings() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <Card className="glass-card border-border">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Palette className="h-5 w-5 text-primary" />
+          Theme
+        </CardTitle>
+        <CardDescription>
+          Choose your preferred visual theme for the app.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {themeOptions.map((t) => (
+            <button
+              key={t.value}
+              onClick={() => setTheme(t.value)}
+              className={cn(
+                "relative flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all",
+                theme === t.value
+                  ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                  : "border-border hover:border-primary/30"
+              )}
+            >
+              <div className={cn("w-full h-16 rounded-lg border", t.preview)} />
+              <div className="flex items-center gap-2">
+                <t.icon className="h-4 w-4" />
+                <span className="font-medium text-sm">{t.label}</span>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                {t.description}
+              </p>
+              {theme === t.value && (
+                <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                  <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export function SettingsPage() {
   const navigate = useNavigate();
@@ -95,8 +157,9 @@ export function SettingsPage() {
           transition={{ duration: 0.4 }}
         >
           <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 bg-muted/50">
+            <TabsList className="grid w-full grid-cols-4 bg-muted/50">
               <TabsTrigger value="profile">Profile</TabsTrigger>
+              <TabsTrigger value="appearance">Appearance</TabsTrigger>
               <TabsTrigger value="notifications">Notifications</TabsTrigger>
               <TabsTrigger value="security">Security</TabsTrigger>
             </TabsList>
@@ -223,6 +286,11 @@ export function SettingsPage() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Appearance Tab */}
+            <TabsContent value="appearance" className="space-y-6">
+              <AppearanceSettings />
             </TabsContent>
 
             {/* Notifications Tab */}

@@ -14,6 +14,7 @@ import {
   FileImage,
 } from "lucide-react";
 import authentisealIcon from "@/assets/authentiseal-icon.png";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
@@ -116,9 +117,10 @@ export function IssuerDashboardLayout({ children }: DashboardLayoutProps) {
           ))}
         </nav>
 
-        {/* Credits Display */}
-        <div className="px-4 py-2">
+        {/* Theme & Credits */}
+        <div className="px-4 py-2 flex items-center justify-between">
           <CreditsDisplay compact />
+          <ThemeToggle compact />
         </div>
 
         {/* Wallet connection */}

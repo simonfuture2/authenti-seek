@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import authentisealIcon from "@/assets/authentiseal-icon.png";
 import authentisealBanner from "@/assets/authentiseal-banner.png";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -184,6 +185,7 @@ export function LandingPage() {
             </a>
           </div>
           <div className="flex items-center gap-2">
+            <ThemeToggle compact />
             <Link to="/auth" className="hidden md:inline-flex">
               <Button className="bg-solana-gradient hover:opacity-90">
                 Get Started
