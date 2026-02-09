@@ -29,6 +29,8 @@ import { QRScanner } from "@/components/scanner/QRScanner";
 import { supabase } from "@/integrations/supabase/client";
 import { verifyCertificateOnChain, getExplorerUrl } from "@/lib/solana";
 import { useToast } from "@/hooks/use-toast";
+import { CollectAILink } from "@/components/ecosystem/CollectAILink";
+import { EcosystemBadge } from "@/components/ecosystem/EcosystemBadge";
 
 interface PublicCertificate {
   id: string;
@@ -560,6 +562,30 @@ export function PublicVerifyPage() {
                       </div>
                     )}
 
+                    {/* CollectAI Integration - Show for collectible categories */}
+                    {certificate.product_category &&
+                      ["collectibles", "trading cards", "sports cards", "pokemon", "cards"].some(
+                        (cat) => certificate.product_category?.toLowerCase().includes(cat)
+                      ) && (
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                            CollectAI Integration
+                          </p>
+                          <div className="grid gap-2">
+                            <CollectAILink
+                              action="grade"
+                              productName={certificate.product_name}
+                              variant="card"
+                            />
+                            <CollectAILink
+                              action="market"
+                              productName={certificate.product_name}
+                              variant="card"
+                            />
+                          </div>
+                        </div>
+                      )}
+
                     {/* Actions */}
                     <div className="flex gap-2">
                       <Button onClick={resetVerification} variant="outline" className="flex-1">
@@ -594,10 +620,13 @@ export function PublicVerifyPage() {
 
       {/* Footer */}
       <footer className="py-8 px-4 border-t border-border">
-        <div className="container mx-auto text-center">
+        <div className="container mx-auto text-center space-y-4">
           <div className="flex items-center justify-center gap-3 mb-4">
             <img src={authentisealIcon} alt="AuthentiSeal" className="h-7 w-7 rounded-lg" />
             <span className="font-bold gradient-text">AuthentiSeal</span>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <EcosystemBadge app="collectai" variant="inline" />
           </div>
           <p className="text-xs text-muted-foreground">
             Blockchain-verified certificates of authenticity powered by Solana
