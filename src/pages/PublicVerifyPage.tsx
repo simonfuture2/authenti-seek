@@ -19,6 +19,7 @@ import {
   Tag,
 } from "lucide-react";
 import authentisealIcon from "@/assets/authentiseal-icon.png";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -221,12 +222,15 @@ export function PublicVerifyPage() {
             <img src={authentisealIcon} alt="AuthentiSeal" className="h-9 w-9 rounded-lg" />
             <span className="text-xl font-bold gradient-text">AuthentiSeal</span>
           </Link>
-          <Link to="/auth">
-            <Button variant="outline" size="sm">
-              Sign In
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle compact />
+            <Link to="/auth">
+              <Button variant="outline" size="sm">
+                Sign In
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </nav>
 
