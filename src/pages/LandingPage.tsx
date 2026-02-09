@@ -24,6 +24,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { SolPriceTicker } from "@/components/wallet/SolPriceTicker";
 
 const features = [
   {
@@ -185,6 +186,7 @@ export function LandingPage() {
             </a>
           </div>
           <div className="flex items-center gap-2">
+            <SolPriceTicker compact />
             <ThemeToggle compact />
             <Link to="/auth" className="hidden md:inline-flex">
               <Button className="bg-solana-gradient hover:opacity-90">
