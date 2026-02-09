@@ -37,15 +37,15 @@ export function AuthPage() {
 
           <div className="grid grid-cols-3 gap-4">
             <div className="glass-card p-4 rounded-xl">
-              <div className="text-2xl font-bold gradient-text">Fast</div>
+              <div className="text-lg sm:text-2xl font-bold gradient-text">Fast</div>
               <p className="text-xs text-muted-foreground">400ms finality</p>
             </div>
             <div className="glass-card p-4 rounded-xl">
-              <div className="text-2xl font-bold gradient-text">Secure</div>
+              <div className="text-lg sm:text-2xl font-bold gradient-text">Secure</div>
               <p className="text-xs text-muted-foreground">Immutable records</p>
             </div>
             <div className="glass-card p-4 rounded-xl">
-              <div className="text-2xl font-bold gradient-text">Low Cost</div>
+              <div className="text-lg sm:text-2xl font-bold gradient-text">Low Cost</div>
               <p className="text-xs text-muted-foreground">$0.00025/tx</p>
             </div>
           </div>
