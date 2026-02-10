@@ -123,7 +123,7 @@ export async function mintCertificateNFT(
         verified: true,
       },
     ],
-    isMutable: false, // COA should be immutable
+    isMutable: true, // Must be mutable to support ownership transfers and metadata updates
   }).sendAndConfirm(umi);
 
   const signatureString = bs58.encode(signature);
