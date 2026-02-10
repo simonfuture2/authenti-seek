@@ -50,6 +50,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { MintModeSelector } from "@/components/certificate/MintModeSelector";
+import { AssetLPPanel } from "@/components/certificate/AssetLPPanel";
 
 type ViewMode = "grid" | "list";
 type StatusFilter = "all" | "active" | "transferred" | "revoked" | "chain_pending";
@@ -929,6 +930,12 @@ export default function CertificatesPage() {
                     )}
                   </div>
                 )}
+
+                {/* Asset LP Panel */}
+                <AssetLPPanel
+                  certificateId={selectedCert.id}
+                  isOwner={true}
+                />
 
                 {/* Actions */}
                 <div className="flex flex-wrap gap-3">
