@@ -690,7 +690,6 @@ export type Database = {
       certificates_public: {
         Row: {
           created_at: string | null
-          current_owner_wallet: string | null
           id: string | null
           issued_at: string | null
           issuer_id: string | null
@@ -710,7 +709,6 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          current_owner_wallet?: string | null
           id?: string | null
           issued_at?: string | null
           issuer_id?: string | null
@@ -722,15 +720,14 @@ export type Database = {
           product_name?: string | null
           qr_code_data?: string | null
           serial_number?: string | null
-          solana_account?: never
-          solana_signature?: never
+          solana_account?: string | null
+          solana_signature?: string | null
           status?: Database["public"]["Enums"]["certificate_status"] | null
           unique_identifiers?: Json | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
-          current_owner_wallet?: string | null
           id?: string | null
           issued_at?: string | null
           issuer_id?: string | null
@@ -742,8 +739,8 @@ export type Database = {
           product_name?: string | null
           qr_code_data?: string | null
           serial_number?: string | null
-          solana_account?: never
-          solana_signature?: never
+          solana_account?: string | null
+          solana_signature?: string | null
           status?: Database["public"]["Enums"]["certificate_status"] | null
           unique_identifiers?: Json | null
           updated_at?: string | null
