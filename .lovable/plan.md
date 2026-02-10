@@ -1,144 +1,124 @@
 
 
-# Add WalletConnect Recommended Option for Mobile/Tablet
+# Asset LP - Certificate Floor Value Backing
 
 ## Overview
 
-This plan adds a prominent, recommended "Use WalletConnect" section specifically for mobile and tablet users. WalletConnect is the most reliable cross-wallet mobile flow because it uses a standardized QR code protocol that works with any compatible wallet app, avoiding the inconsistencies of deep linking.
+Add an "Asset LP" feature that lets issuers back their certificates with a SOL + stablecoin (USDC/USDT) pair, establishing a verifiable floor value. The initial implementation uses a treasury wallet with database tracking, designed for a future upgrade to on-chain escrow.
 
-## What Will Change
+## How It Works
 
-### User Experience Improvements
+When an issuer sets a floor value (e.g. $100) for a certificate:
+- They deposit 50% in SOL and 50% in USDC or USDT
+- The SOL portion can appreciate, growing the certificate's backed value
+- The stablecoin portion protects against SOL downside, preserving at least 50% of floor value
+- Issuers can make incremental deposits over time to increase the floor
 
-1. **Prominent Recommended Section for Mobile Users**
-   - On touch devices (iPad, iPhone, Android), a new highlighted section will appear at the top of the wallet modal
-   - The section will be visually distinct with a gradient border and "Recommended" badge
-   - Clear instructions explaining why WalletConnect is the best choice for mobile
+## Architecture
 
-2. **Step-by-Step Instructions**
-   - Before showing the QR code: Brief explanation of what will happen
-   - After QR appears: Clear numbered steps (1. Open wallet app, 2. Find scan option, 3. Scan QR)
-   - Mention that most Solana wallets support WalletConnect (Phantom, Solflare, etc.)
+**Phase 1 (this implementation):** Tokens are transferred to a designated project treasury wallet. Deposits are verified on-chain via the existing `purchase-credits` pattern (verify Solana transaction signature), then recorded in the database. The real-time SOL price ticker is used to show live backed value.
 
-3. **Improved QR Code View**
-   - Larger, more prominent QR code
-   - Better loading state with clearer messaging
-   - "Copy to clipboard" button as fallback for manual pasting
-   - Retry button if QR generation fails
+**Phase 2 (future):** Migrate to PDA-based on-chain escrow where funds are locked per-certificate in a Solana program.
 
----
+## Technical Plan
 
-## Technical Details
+### 1. Database Migration
 
-### File Changes
+**New table: `asset_lp_deposits`**
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid (PK) | Auto-generated |
+| certificate_id | uuid (FK) | Links to certificates |
+| depositor_id | uuid | Auth user who deposited |
+| deposit_type | enum (`sol`, `usdc`, `usdt`) | Token deposited |
+| amount_token | numeric | Raw token amount (SOL or stablecoins) |
+| amount_usd_at_deposit | numeric | USD equivalent at time of deposit |
+| solana_signature | text | On-chain tx proof |
+| status | enum (`pending`, `confirmed`, `failed`) | Verification status |
+| created_at | timestamptz | Deposit timestamp |
 
-**`src/components/wallet/CustomWalletModal.tsx`**
+**New table: `asset_lp_summary`**
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid (PK) | Auto-generated |
+| certificate_id | uuid (FK, unique) | One summary per cert |
+| total_sol | numeric | Total SOL deposited |
+| total_usdc | numeric | Total USDC deposited |
+| total_usdt | numeric | Total USDT deposited |
+| floor_value_usd | numeric | Original floor target |
+| is_active | boolean | Whether LP is active |
+| created_at / updated_at | timestamptz | Timestamps |
 
-1. **Add new state for clipboard copying**
-   ```typescript
-   const [copiedUri, setCopiedUri] = useState(false);
-   ```
+**RLS Policies:**
+- Issuers can SELECT/INSERT/UPDATE their own certificate LP data
+- Public can SELECT summary for active certificates (read-only, via the certificates_public pattern)
 
-2. **Create a dedicated WalletConnect button component**
-   - Render at the top of the modal when `isTouch` is true
-   - Uses the Solana gradient styling for prominence
-   - Includes a "Recommended for mobile" badge
+**New enum types:** `lp_deposit_type` (sol, usdc, usdt) and `lp_deposit_status` (pending, confirmed, failed)
 
-3. **Filter WalletConnect from the "otherWallets" list on mobile**
-   - Extract WalletConnect wallet adapter from the list
-   - Display it separately in the recommended section
-   - Only show in "More Options" on desktop
+### 2. Backend Function: `verify-lp-deposit`
 
-4. **Enhanced QR code view with instructions**
-   - Add numbered step instructions
-   - Add a "Copy URI" button using clipboard API
-   - Add wallet compatibility note (Phantom, Solflare, etc.)
+A new edge function that:
+1. Receives: certificate_id, solana_signature, deposit_type, expected_amount
+2. Fetches the transaction from Solana RPC
+3. Verifies the transfer went to the treasury wallet (existing `9WzDXwBb...` address)
+4. For SPL tokens (USDC/USDT), verifies the correct token mint and amount
+5. Records the confirmed deposit in `asset_lp_deposits`
+6. Updates the `asset_lp_summary` aggregates
+7. Creates a metadata version entry for audit trail
 
-5. **Import additional icons**
-   - `QrCode` icon from lucide-react for the recommended button
-   - `Copy` and `Check` icons for the copy button
+Token mint addresses (Solana mainnet):
+- USDC: `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`
+- USDT: `Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB`
 
-### UI Layout (Mobile/Tablet)
+### 3. New React Hook: `useAssetLP`
 
-```text
-+------------------------------------------+
-| [←] [Wallet Icon] Connect Wallet         |
-+------------------------------------------+
-|                                          |
-| ╔════════════════════════════════════╗   |
-| ║  📱 RECOMMENDED FOR MOBILE         ║   |
-| ║                                    ║   |
-| ║  [QR Icon] Use WalletConnect       ║   |
-| ║  Works with any Solana wallet app  ║   |
-| ║                                    ║   |
-| ╚════════════════════════════════════╝   |
-|                                          |
-| ── OR OPEN DIRECTLY ──                   |
-|                                          |
-| [Phantom]         Open in app            |
-| [Solflare]        Open in app            |
-|                                          |
-| New to Solana? Get Phantom               |
-+------------------------------------------+
-```
+Located at `src/hooks/useAssetLP.ts`:
+- `getLPSummary(certificateId)` - fetch current LP backing for a certificate
+- `depositToLP(certificateId, depositType, amount, signature)` - submit a verified deposit
+- `getLPHistory(certificateId)` - fetch all deposits for a certificate
+- Uses `useSolPrice` hook to calculate live backed value (SOL portion dynamically priced)
 
-### QR Code View (After Clicking WalletConnect)
+### 4. New UI Component: `AssetLPPanel`
 
-```text
-+------------------------------------------+
-| [←] [Wallet Icon] Scan QR Code           |
-+------------------------------------------+
-|                                          |
-|        ┌─────────────────┐               |
-|        │                 │               |
-|        │    [QR CODE]    │               |
-|        │                 │               |
-|        └─────────────────┘               |
-|                                          |
-|  How to connect:                         |
-|  1. Open your wallet app                 |
-|  2. Tap the scan/WalletConnect button    |
-|  3. Scan this QR code                    |
-|                                          |
-|  [Copy Link] ← for manual pasting        |
-|                                          |
-|  Works with: Phantom, Solflare & more    |
-+------------------------------------------+
-```
+Located at `src/components/certificate/AssetLPPanel.tsx`:
 
-### Code Changes Summary
+**For the certificate detail dialog (CertificatesPage):**
+- Shows current backed value with live SOL price updates
+- Breakdown: SOL portion (dynamic) + stablecoin portion (stable)
+- Visual progress bar toward floor value target
+- "Add Liquidity" button opening a deposit modal
 
-| Location | Change |
-|----------|--------|
-| Lines 1-15 | Add `QrCode`, `Copy`, `Check` imports from lucide-react |
-| Lines 53-58 | Add `copiedUri` state |
-| Lines 65-81 | Extract WalletConnect adapter separately via `useMemo` |
-| Lines 188-250 | Add recommended WalletConnect section for touch devices |
-| Lines 213-240 | Enhance QR view with instructions and copy button |
+**Deposit Modal (`AssetLPDepositModal.tsx`):**
+- Set or view the floor value target
+- Choose deposit type (SOL / USDC / USDT)
+- Enter amount (auto-calculates the USD equivalent)
+- Wallet sends the transaction, then the app verifies it
+- Shows confirmation with explorer link
 
-### Copy URI Handler
+### 5. Public Display
 
-```typescript
-const handleCopyUri = useCallback(() => {
-  if (walletConnectUri) {
-    navigator.clipboard.writeText(walletConnectUri);
-    setCopiedUri(true);
-    toast.success("Link copied to clipboard");
-    setTimeout(() => setCopiedUri(false), 2000);
-  }
-}, [walletConnectUri]);
-```
+- On the public verification page and certificate preview, show the "Floor Value Backed" badge
+- Display the live backed value (SOL at current price + stablecoins)
+- This adds trust signal for verifiers and buyers
 
-## Why This Approach
+### 6. Files to Create/Modify
 
-1. **WalletConnect is Universal** - Unlike deep links which require specific wallet apps and can fail on iOS due to security restrictions, WalletConnect uses a standardized protocol
-2. **No App Detection Needed** - Works regardless of which wallet the user has installed
-3. **Better User Control** - User chooses which wallet to use in their own app
-4. **Fallback Options** - Deep links to Phantom/Solflare remain as "OR OPEN DIRECTLY" alternatives
+**New files:**
+- `src/hooks/useAssetLP.ts` - Data fetching and deposit hook
+- `src/components/certificate/AssetLPPanel.tsx` - LP summary display
+- `src/components/certificate/AssetLPDepositModal.tsx` - Deposit flow UI
+- `supabase/functions/verify-lp-deposit/index.ts` - On-chain deposit verification
 
-## Dependencies
+**Modified files:**
+- `src/pages/issuer/CertificatesPage.tsx` - Add LP panel to certificate detail dialog
+- `src/components/certificate/CertificatePreview.tsx` - Show backed value badge
+- `src/pages/PublicVerifyPage.tsx` - Display LP backing info publicly
 
-- `VITE_WALLETCONNECT_PROJECT_ID` secret is already configured
-- `qrcode.react` package is already installed
-- WalletConnect adapter is already set up in `SolanaContext.tsx`
+### 7. Security Considerations
+
+- All deposits verified on-chain before recording (same pattern as credit purchases)
+- RLS ensures only certificate issuers can manage their own LP
+- Treasury wallet address validated server-side
+- SPL token mints validated against known addresses
+- Transaction signature uniqueness enforced (prevent replay)
 
