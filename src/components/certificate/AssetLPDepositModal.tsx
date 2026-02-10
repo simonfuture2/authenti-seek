@@ -42,7 +42,8 @@ interface AssetLPDepositModalProps {
   onSuccess: () => void;
 }
 
-type DepositType = "sol" | "usdc" | "usdt";
+type PairType = "sol_usdc" | "sol_usdt";
+type DepositStep = "sol" | "stablecoin";
 
 export function AssetLPDepositModal({
   open,
@@ -51,14 +52,15 @@ export function AssetLPDepositModal({
   currentFloorValue,
   onSuccess,
 }: AssetLPDepositModalProps) {
-  const [depositType, setDepositType] = useState<DepositType>("sol");
-  const [amount, setAmount] = useState("");
+  const [pair, setPair] = useState<PairType>("sol_usdc");
   const [floorValue, setFloorValue] = useState(currentFloorValue.toString());
-  const [step, setStep] = useState<"input" | "sending" | "verifying" | "done">("input");
+  const [step, setStep] = useState<"input" | "sending_sol" | "verifying_sol" | "sending_stable" | "verifying_stable" | "done">("input");
+  const [depositStep, setDepositStep] = useState<DepositStep>("sol");
   const [txSignature, setTxSignature] = useState<string | null>(null);
+  const [solTxDone, setSolTxDone] = useState(false);
 
-  const { solPrice, solToUsd, usdToSol } = useSolPrice();
-  const { verifyDeposit, isVerifying } = useAssetLP(certificateId);
+  const { solPrice, usdToSol } = useSolPrice();
+  const { verifyDeposit } = useAssetLP(certificateId);
   const { publicKey, sendTransaction, connected } = useWallet();
   const { connection } = useConnection();
   const { toast } = useToast();
@@ -66,91 +68,97 @@ export function AssetLPDepositModal({
   useEffect(() => {
     if (open) {
       setStep("input");
-      setAmount("");
+      setDepositStep("sol");
       setTxSignature(null);
+      setSolTxDone(false);
       setFloorValue(currentFloorValue > 0 ? currentFloorValue.toString() : "");
     }
   }, [open, currentFloorValue]);
 
-  const amountNum = parseFloat(amount) || 0;
-  const usdEquivalent =
-    depositType === "sol"
-      ? solPrice ? amountNum * solPrice : null
-      : amountNum; // stablecoins are 1:1 USD
+  const floorNum = parseFloat(floorValue) || 0;
+  const halfUsd = floorNum / 2;
+  const stablecoinType = pair === "sol_usdc" ? "usdc" : "usdt";
+  const stablecoinLabel = stablecoinType.toUpperCase();
+  const solAmount = usdToSol ? usdToSol(halfUsd) : null;
+  const stablecoinAmount = halfUsd;
 
-  const handleDeposit = async () => {
+  const handleDepositSol = async () => {
     if (!publicKey || !connected) {
       toast({ title: "Connect your wallet first", variant: "destructive" });
       return;
     }
-    if (amountNum <= 0) {
-      toast({ title: "Enter a valid amount", variant: "destructive" });
-      return;
-    }
+    if (!solAmount || solAmount <= 0) return;
 
     try {
-      setStep("sending");
+      setStep("sending_sol");
+      const lamports = Math.floor(solAmount * LAMPORTS_PER_SOL);
+      const tx = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: publicKey,
+          toPubkey: new PublicKey(TREASURY_WALLET),
+          lamports,
+        })
+      );
 
-      if (depositType === "sol") {
-        // Build SOL transfer transaction
-        const lamports = Math.floor(amountNum * LAMPORTS_PER_SOL);
-        const tx = new Transaction().add(
-          SystemProgram.transfer({
-            fromPubkey: publicKey,
-            toPubkey: new PublicKey(TREASURY_WALLET),
-            lamports,
-          })
-        );
+      const signature = await sendTransaction(tx, connection);
+      await connection.confirmTransaction(signature, "confirmed");
+      setTxSignature(signature);
 
-        const signature = await sendTransaction(tx, connection);
-        await connection.confirmTransaction(signature, "confirmed");
-        setTxSignature(signature);
+      setStep("verifying_sol");
+      await verifyDeposit({
+        certificate_id: certificateId,
+        solana_signature: signature,
+        deposit_type: "sol",
+        amount_token: solAmount,
+        amount_usd: halfUsd,
+        floor_value_usd: floorNum || undefined,
+      });
 
-        // Verify on backend
-        setStep("verifying");
-        await verifyDeposit({
-          certificate_id: certificateId,
-          solana_signature: signature,
-          deposit_type: "sol",
-          amount_token: amountNum,
-          amount_usd: usdEquivalent || 0,
-          floor_value_usd: parseFloat(floorValue) || undefined,
-        });
-      } else {
-        // For USDC/USDT SPL transfers, we need the user to send via their wallet
-        // This is a simplified flow – in production, use @solana/spl-token
-        toast({
-          title: "SPL Token Transfer",
-          description: `Please send ${amountNum} ${depositType.toUpperCase()} to ${TREASURY_WALLET.slice(0, 8)}... and paste the signature below.`,
-        });
-        // For now, prompt for manual signature entry
-        const sig = prompt("Enter the Solana transaction signature after sending:");
-        if (!sig) {
-          setStep("input");
-          return;
-        }
-        setTxSignature(sig);
-        setStep("verifying");
-        await verifyDeposit({
-          certificate_id: certificateId,
-          solana_signature: sig,
-          deposit_type: depositType,
-          amount_token: amountNum,
-          amount_usd: amountNum, // stablecoins = USD
-          floor_value_usd: parseFloat(floorValue) || undefined,
-        });
-      }
+      setSolTxDone(true);
+      setDepositStep("stablecoin");
+      setStep("input");
+      toast({ title: "SOL deposit confirmed!", description: `Now deposit ${stablecoinLabel}.` });
+    } catch (error: any) {
+      console.error("SOL deposit error:", error);
+      toast({ title: "SOL Deposit Failed", description: error.message, variant: "destructive" });
+      setStep("input");
+    }
+  };
+
+  const handleDepositStablecoin = async () => {
+    if (!publicKey || !connected) {
+      toast({ title: "Connect your wallet first", variant: "destructive" });
+      return;
+    }
+    if (stablecoinAmount <= 0) return;
+
+    try {
+      // SPL token transfer – manual signature for now
+      toast({
+        title: `Send ${stablecoinLabel}`,
+        description: `Send ${stablecoinAmount.toFixed(2)} ${stablecoinLabel} to ${TREASURY_WALLET.slice(0, 8)}... then paste the tx signature.`,
+      });
+      const sig = prompt(`Enter the ${stablecoinLabel} transaction signature:`);
+      if (!sig) return;
+
+      setStep("verifying_stable");
+      setTxSignature(sig);
+
+      await verifyDeposit({
+        certificate_id: certificateId,
+        solana_signature: sig,
+        deposit_type: stablecoinType,
+        amount_token: stablecoinAmount,
+        amount_usd: stablecoinAmount,
+        floor_value_usd: floorNum || undefined,
+      });
 
       setStep("done");
-      toast({ title: "Deposit confirmed!", description: "Liquidity added to certificate." });
+      toast({ title: "Liquidity pair complete!", description: "Both deposits confirmed." });
       onSuccess();
     } catch (error: any) {
-      console.error("Deposit error:", error);
-      toast({
-        title: "Deposit Failed",
-        description: error.message || "Failed to process deposit",
-        variant: "destructive",
-      });
+      console.error("Stablecoin deposit error:", error);
+      toast({ title: "Deposit Failed", description: error.message, variant: "destructive" });
       setStep("input");
     }
   };
@@ -164,7 +172,7 @@ export function AssetLPDepositModal({
             Add Liquidity
           </DialogTitle>
           <DialogDescription>
-            Back this certificate with SOL + stablecoins to establish a floor value.
+            Back this certificate with a SOL + stablecoin pair to establish a floor value.
           </DialogDescription>
         </DialogHeader>
 
@@ -173,7 +181,7 @@ export function AssetLPDepositModal({
             <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
               <Droplets className="h-6 w-6 text-primary" />
             </div>
-            <p className="font-semibold">Deposit Confirmed!</p>
+            <p className="font-semibold">Liquidity Pair Complete!</p>
             {txSignature && (
               <a
                 href={getExplorerTxUrl(txSignature)}
@@ -190,6 +198,37 @@ export function AssetLPDepositModal({
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Pair selector */}
+            <div className="space-y-2">
+              <Label>Liquidity Pair</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPair("sol_usdc")}
+                  disabled={solTxDone}
+                  className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
+                    pair === "sol_usdc"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-muted/30 text-muted-foreground hover:border-primary/50"
+                  } ${solTxDone ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  SOL / USDC
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPair("sol_usdt")}
+                  disabled={solTxDone}
+                  className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
+                    pair === "sol_usdt"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-muted/30 text-muted-foreground hover:border-primary/50"
+                  } ${solTxDone ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  SOL / USDT
+                </button>
+              </div>
+            </div>
+
             {/* Floor value target */}
             <div className="space-y-2">
               <Label>Floor Value Target (USD)</Label>
@@ -198,7 +237,7 @@ export function AssetLPDepositModal({
                 placeholder="e.g. 100"
                 value={floorValue}
                 onChange={(e) => setFloorValue(e.target.value)}
-                disabled={currentFloorValue > 0}
+                disabled={currentFloorValue > 0 || solTxDone}
               />
               {currentFloorValue > 0 && (
                 <p className="text-xs text-muted-foreground">
@@ -207,37 +246,35 @@ export function AssetLPDepositModal({
               )}
             </div>
 
-            {/* Deposit type */}
-            <div className="space-y-2">
-              <Label>Token</Label>
-              <Select value={depositType} onValueChange={(v) => setDepositType(v as DepositType)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sol">SOL</SelectItem>
-                  <SelectItem value="usdc">USDC</SelectItem>
-                  <SelectItem value="usdt">USDT</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Amount */}
-            <div className="space-y-2">
-              <Label>Amount ({depositType.toUpperCase()})</Label>
-              <Input
-                type="number"
-                placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                step="any"
-              />
-              {usdEquivalent !== null && amountNum > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  ≈ ${usdEquivalent.toFixed(2)} USD
+            {/* Auto-calculated pair breakdown */}
+            {floorNum > 0 && (
+              <div className="p-3 rounded-lg bg-muted/50 border border-border space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Required Deposits (50/50 split)
                 </p>
-              )}
-            </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className={`p-2 rounded border ${depositStep === "sol" && !solTxDone ? "border-primary bg-primary/5" : solTxDone ? "border-primary/30 bg-primary/5" : "border-border"}`}>
+                    <p className="text-xs text-muted-foreground">SOL (50%)</p>
+                    <p className="font-mono font-semibold text-sm">
+                      {solAmount !== null ? `${solAmount.toFixed(4)} SOL` : "Loading..."}
+                    </p>
+                    <p className="text-xs text-muted-foreground">${halfUsd.toFixed(2)}</p>
+                    {solTxDone && (
+                      <Badge variant="outline" className="mt-1 text-[10px] border-primary/30 text-primary">
+                        ✓ Done
+                      </Badge>
+                    )}
+                  </div>
+                  <div className={`p-2 rounded border ${depositStep === "stablecoin" && solTxDone ? "border-primary bg-primary/5" : "border-border"}`}>
+                    <p className="text-xs text-muted-foreground">{stablecoinLabel} (50%)</p>
+                    <p className="font-mono font-semibold text-sm">
+                      {stablecoinAmount.toFixed(2)} {stablecoinLabel}
+                    </p>
+                    <p className="text-xs text-muted-foreground">${halfUsd.toFixed(2)}</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Wallet */}
             {!connected && (
@@ -247,19 +284,38 @@ export function AssetLPDepositModal({
               </div>
             )}
 
-            <Button
-              className="w-full"
-              onClick={handleDeposit}
-              disabled={step !== "input" || amountNum <= 0 || !connected}
-            >
-              {step === "sending" ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending Transaction...</>
-              ) : step === "verifying" ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Verifying On-Chain...</>
-              ) : (
-                `Deposit ${amountNum > 0 ? amountNum : ""} ${depositType.toUpperCase()}`
-              )}
-            </Button>
+            {/* Deposit buttons */}
+            {floorNum > 0 && connected && (
+              <>
+                {!solTxDone ? (
+                  <Button
+                    className="w-full"
+                    onClick={handleDepositSol}
+                    disabled={step !== "input" || !solAmount || solAmount <= 0}
+                  >
+                    {step === "sending_sol" ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending SOL...</>
+                    ) : step === "verifying_sol" ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Verifying SOL...</>
+                    ) : (
+                      `Step 1: Deposit ${solAmount?.toFixed(4) || "—"} SOL`
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    className="w-full"
+                    onClick={handleDepositStablecoin}
+                    disabled={step !== "input"}
+                  >
+                    {step === "verifying_stable" ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Verifying {stablecoinLabel}...</>
+                    ) : (
+                      `Step 2: Deposit ${stablecoinAmount.toFixed(2)} ${stablecoinLabel}`
+                    )}
+                  </Button>
+                )}
+              </>
+            )}
           </div>
         )}
       </DialogContent>
