@@ -240,8 +240,8 @@ export function useCertificateSearch() {
     const issuerIds = [...new Set(certificates.map(c => c.issuer_id).filter(Boolean))] as string[];
     
     if (issuerIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from("profiles")
+      const { data: profiles } = await (supabase as any)
+        .from("profiles_public")
         .select("user_id, display_name, company_name")
         .in("user_id", issuerIds);
 
@@ -271,8 +271,8 @@ export function useCertificateSearch() {
 
     // Get issuer profile if exists
     if (certificate.issuer_id) {
-      const { data: profile } = await supabase
-        .from("profiles")
+      const { data: profile } = await (supabase as any)
+        .from("profiles_public")
         .select("user_id, display_name, company_name")
         .eq("user_id", certificate.issuer_id)
         .maybeSingle();
@@ -298,8 +298,8 @@ export function useCertificateSearch() {
 
     // Get issuer profile if exists
     if (certificate.issuer_id) {
-      const { data: profile } = await supabase
-        .from("profiles")
+      const { data: profile } = await (supabase as any)
+        .from("profiles_public")
         .select("user_id, display_name, company_name")
         .eq("user_id", certificate.issuer_id)
         .maybeSingle();

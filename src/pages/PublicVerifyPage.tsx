@@ -91,8 +91,8 @@ export function PublicVerifyPage() {
 
     // Get issuer profile
     if (cert.issuer_id) {
-      const { data: profile } = await supabase
-        .from("profiles")
+      const { data: profile } = await (supabase as any)
+        .from("profiles_public")
         .select("display_name, company_name")
         .eq("user_id", cert.issuer_id)
         .maybeSingle();
