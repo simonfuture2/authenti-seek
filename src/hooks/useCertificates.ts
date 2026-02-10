@@ -240,13 +240,14 @@ export function useCertificateSearch() {
     const issuerIds = [...new Set(certificates.map(c => c.issuer_id).filter(Boolean))] as string[];
     
     if (issuerIds.length > 0) {
-      const { data: profiles } = await (supabase as any)
-        .from("profiles_public")
-        .select("user_id, display_name, company_name")
-        .in("user_id", issuerIds);
+      const profileRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/issuer-profile?user_ids=${issuerIds.join(",")}`,
+        { headers: { "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
+      );
+      const { profiles } = profileRes.ok ? await profileRes.json() : { profiles: [] };
 
       // Merge profile data into certificates
-      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      const profileMap = new Map(profiles?.map((p: any) => [p.user_id, p]) || []);
       return certificates.map(cert => ({
         ...cert,
         profiles: cert.issuer_id ? profileMap.get(cert.issuer_id) : null,
@@ -271,11 +272,11 @@ export function useCertificateSearch() {
 
     // Get issuer profile if exists
     if (certificate.issuer_id) {
-      const { data: profile } = await (supabase as any)
-        .from("profiles_public")
-        .select("user_id, display_name, company_name")
-        .eq("user_id", certificate.issuer_id)
-        .maybeSingle();
+      const profileRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/issuer-profile?user_id=${certificate.issuer_id}`,
+        { headers: { "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
+      );
+      const { profile } = profileRes.ok ? await profileRes.json() : { profile: null };
 
       return { ...certificate, profiles: profile };
     }
@@ -298,11 +299,11 @@ export function useCertificateSearch() {
 
     // Get issuer profile if exists
     if (certificate.issuer_id) {
-      const { data: profile } = await (supabase as any)
-        .from("profiles_public")
-        .select("user_id, display_name, company_name")
-        .eq("user_id", certificate.issuer_id)
-        .maybeSingle();
+      const profileRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/issuer-profile?user_id=${certificate.issuer_id}`,
+        { headers: { "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
+      );
+      const { profile } = profileRes.ok ? await profileRes.json() : { profile: null };
 
       return { ...certificate, profiles: profile };
     }
