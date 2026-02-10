@@ -1,4 +1,5 @@
 import React from "react";
+import { usePlatformStats } from "@/hooks/usePlatformStats";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
@@ -194,6 +195,7 @@ const trustedBy = [
 
 export function LandingPage() {
   const { usdToSolFormatted } = useSolPrice();
+  const { data: platformStats } = usePlatformStats();
 
   return (
     <div className="min-h-screen bg-background">
@@ -415,29 +417,29 @@ export function LandingPage() {
               <div className="flex items-center justify-center gap-2 mb-2">
                 <FileCheck className="h-5 w-5 text-primary" />
               </div>
-              <div className="text-3xl md:text-4xl font-bold gradient-text">8+</div>
+              <div className="text-3xl md:text-4xl font-bold gradient-text">{platformStats?.totalCertificates ?? "—"}+</div>
               <p className="text-xs md:text-sm text-muted-foreground mt-1">Certificates Issued</p>
             </div>
             <div className="glass-card p-6 rounded-xl text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <Shield className="h-5 w-5 text-primary" />
               </div>
-              <div className="text-3xl md:text-4xl font-bold gradient-text">13+</div>
+              <div className="text-3xl md:text-4xl font-bold gradient-text">{platformStats?.totalVerifications ?? "—"}+</div>
               <p className="text-xs md:text-sm text-muted-foreground mt-1">Verifications Run</p>
             </div>
             <div className="glass-card p-6 rounded-xl text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <Zap className="h-5 w-5 text-primary" />
               </div>
-              <div className="text-3xl md:text-4xl font-bold gradient-text">87%</div>
+              <div className="text-3xl md:text-4xl font-bold gradient-text">{platformStats?.onChainRate ?? "—"}%</div>
               <p className="text-xs md:text-sm text-muted-foreground mt-1">On-Chain Rate</p>
             </div>
             <div className="glass-card p-6 rounded-xl text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <Users className="h-5 w-5 text-primary" />
               </div>
-              <div className="text-3xl md:text-4xl font-bold gradient-text">2</div>
-              <p className="text-xs md:text-sm text-muted-foreground mt-1">Active Networks</p>
+              <div className="text-3xl md:text-4xl font-bold gradient-text">{platformStats?.activeIssuers ?? "—"}</div>
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">Active Issuers</p>
             </div>
           </motion.div>
 
