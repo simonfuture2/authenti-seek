@@ -70,14 +70,15 @@ export function IssuerProfilePage() {
     setError(null);
 
     try {
-      // Fetch profile
-      const { data: profileData, error: profileError } = await (supabase as any)
-        .from("profiles_public")
-        .select("user_id, display_name, company_name, avatar_url, created_at")
-        .eq("user_id", issuerId)
-        .maybeSingle();
+      // Fetch profile via edge function (profiles_public enforces RLS)
+      const profileRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/issuer-profile?user_id=${encodeURIComponent(issuerId)}`,
+        { headers: { "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
+      );
 
-      if (profileError) throw profileError;
+      if (!profileRes.ok) throw new Error("Failed to fetch issuer profile");
+      const { profile: profileData } = await profileRes.json();
+
       if (!profileData) {
         setError("Issuer not found");
         setIsLoading(false);
