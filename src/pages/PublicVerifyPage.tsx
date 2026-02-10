@@ -26,7 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QRScanner } from "@/components/scanner/QRScanner";
-import { supabase } from "@/integrations/supabase/client";
+// supabase client no longer needed - public verification uses edge function directly
 import { verifyCertificateOnChain, getExplorerUrl } from "@/lib/solana";
 import { useToast } from "@/hooks/use-toast";
 import { CollectAILink } from "@/components/ecosystem/CollectAILink";
@@ -78,29 +78,45 @@ export function PublicVerifyPage() {
   }, [searchParams]);
 
   const fetchCertificate = async (query: string, isId: boolean = false) => {
-    const { data, error } = await supabase
-      .from("certificates_public" as any)
-      .select("*")
-      .eq(isId ? "id" : "serial_number", query)
-      .maybeSingle();
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-    if (error) throw error;
-
-    const cert = data as unknown as PublicCertificate | null;
-    if (!cert) return null;
-
-    // Get issuer profile
-    if (cert.issuer_id) {
-      const { data: profile } = await (supabase as any)
-        .from("profiles_public")
-        .select("display_name, company_name")
-        .eq("user_id", cert.issuer_id)
-        .maybeSingle();
-
-      return { ...cert, profiles: profile };
+    const url = new URL(`${supabaseUrl}/functions/v1/verify-public`);
+    if (isId) {
+      url.searchParams.set("id", query);
+    } else {
+      url.searchParams.set("serial", query);
     }
 
-    return cert;
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        "apikey": supabaseKey,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) throw new Error("Verification service error");
+
+    const result = await response.json();
+
+    if (!result.verified || !result.certificate) return null;
+
+    const cert = result.certificate;
+    return {
+      id: cert.id,
+      serial_number: cert.serial_number,
+      product_name: cert.product_name,
+      product_description: cert.product_description,
+      product_category: cert.product_category,
+      product_images: cert.product_images,
+      status: cert.status,
+      issued_at: cert.issued_at,
+      created_at: cert.issued_at,
+      solana_signature: cert.solana_signature || null,
+      issuer_id: null,
+      profiles: cert.issuer,
+    } as PublicCertificate;
   };
 
   const handleSearch = async (query?: string) => {

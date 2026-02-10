@@ -18,6 +18,7 @@ interface PublicCertificateResponse {
     status: string;
     issued_at: string;
     on_chain: boolean;
+    solana_signature: string | null;
     issuer: {
       display_name: string | null;
       company_name: string | null;
@@ -134,9 +135,10 @@ Deno.serve(async (req) => {
         status: cert.status,
         issued_at: cert.issued_at,
         on_chain: !!cert.solana_signature,
+        solana_signature: cert.solana_signature || null,
         issuer: issuerProfile,
         verify_url: `${BASE_URL}/verify?serial=${encodeURIComponent(cert.serial_number)}`,
-        issuer_profile_url: null, // Removed: raw issuer UUID no longer exposed in public API
+        issuer_profile_url: null,
       },
     };
 
