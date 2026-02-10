@@ -20,8 +20,19 @@ export const SOLANA_WALLET_NETWORK: WalletAdapterNetwork.Mainnet | WalletAdapter
     ? WalletAdapterNetwork.Mainnet
     : WalletAdapterNetwork.Devnet;
 
-/** Full RPC endpoint for the active cluster */
-export const SOLANA_RPC_ENDPOINT: string = clusterApiUrl(SOLANA_WALLET_NETWORK);
+/**
+ * Full RPC endpoint for the active cluster.
+ * Set VITE_SOLANA_RPC_URL to use a dedicated provider (Helius, QuickNode, Triton).
+ * Falls back to the public Solana RPC if unset.
+ */
+const envRpcUrl = import.meta.env.VITE_SOLANA_RPC_URL as string | undefined;
+export const SOLANA_RPC_ENDPOINT: string = envRpcUrl || clusterApiUrl(SOLANA_WALLET_NETWORK);
+
+/** Default compute unit limit for transactions */
+export const DEFAULT_COMPUTE_UNIT_LIMIT = 200_000;
+
+/** Default priority fee in micro-lamports (dynamic bidding recommended for production) */
+export const DEFAULT_PRIORITY_FEE_MICRO_LAMPORTS = 50_000;
 
 /** Whether the app is running against mainnet */
 export const IS_MAINNET: boolean = SOLANA_CLUSTER === "mainnet-beta";

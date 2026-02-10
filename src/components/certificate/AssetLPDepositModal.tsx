@@ -27,8 +27,9 @@ import {
   Transaction,
   SystemProgram,
   LAMPORTS_PER_SOL,
+  ComputeBudgetProgram,
 } from "@solana/web3.js";
-import { getExplorerTxUrl } from "@/lib/solana-config";
+import { getExplorerTxUrl, DEFAULT_COMPUTE_UNIT_LIMIT, DEFAULT_PRIORITY_FEE_MICRO_LAMPORTS } from "@/lib/solana-config";
 import { useToast } from "@/hooks/use-toast";
 import { WalletButton } from "@/components/wallet/WalletButton";
 import { useCredits } from "@/hooks/useCredits";
@@ -128,6 +129,8 @@ export function AssetLPDepositModal({
       setStep("sending_sol");
       const lamports = Math.floor(solAmount * LAMPORTS_PER_SOL);
       const tx = new Transaction().add(
+        ComputeBudgetProgram.setComputeUnitLimit({ units: DEFAULT_COMPUTE_UNIT_LIMIT }),
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: DEFAULT_PRIORITY_FEE_MICRO_LAMPORTS }),
         SystemProgram.transfer({
           fromPubkey: publicKey,
           toPubkey: new PublicKey(TREASURY_WALLET),
@@ -135,8 +138,23 @@ export function AssetLPDepositModal({
         })
       );
 
-      const signature = await sendTransaction(tx, connection);
-      await connection.confirmTransaction(signature, "confirmed");
+      let signature: string;
+      try {
+        signature = await sendTransaction(tx, connection);
+        await connection.confirmTransaction(signature, "confirmed");
+      } catch (txError: any) {
+        // Refund credits on failed Solana transaction
+        console.warn("SOL tx failed, refunding credits...");
+        await supabase.rpc("add_credits", {
+          p_user_id: user.id,
+          p_amount: creditCost,
+          p_payment_method: "sol" as const,
+          p_description: `Refund: LP deposit SOL tx failed - ${txError.message?.slice(0, 80)}`,
+        });
+        refetchCredits();
+        throw txError;
+      }
+
       setTxSignature(signature);
 
       setStep("verifying_sol");
