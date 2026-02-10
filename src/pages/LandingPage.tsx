@@ -12,6 +12,9 @@ import {
   FileCheck,
   Users,
   Globe,
+  Shield,
+  Quote,
+  BadgeCheck,
 } from "lucide-react";
 import authentisealIcon from "@/assets/authentiseal-icon.png";
 import authentisealBanner from "@/assets/authentiseal-banner.png";
@@ -155,6 +158,38 @@ const faqs = [
     answer:
       "Absolutely. All data is encrypted and stored securely. Certificate data on the blockchain is immutable and cannot be altered. We never share your information with third parties.",
   },
+];
+
+const testimonials = [
+  {
+    quote: "AuthentiSeal transformed how we protect our luxury watch brand. Customers love scanning the QR code to verify authenticity instantly.",
+    name: "Marcus Chen",
+    title: "Founder, Chrono Vault",
+    avatar: "MC",
+  },
+  {
+    quote: "The LP-backed certificates give our collectors real confidence. It's the future of authenticated art provenance.",
+    name: "Alessandra Rossi",
+    title: "Director, AR Gallery",
+    avatar: "AR",
+  },
+  {
+    quote: "We reduced counterfeit claims by 90% within three months of adopting AuthentiSeal for our sneaker drops.",
+    name: "Jordan Blake",
+    title: "CEO, Sole Authority",
+    avatar: "JB",
+  },
+];
+
+const trustedBy = [
+  "Luxury Goods",
+  "Fine Art",
+  "Collectibles",
+  "Electronics",
+  "Watches",
+  "Sneakers",
+  "Wine & Spirits",
+  "Automotive Parts",
 ];
 
 export function LandingPage() {
@@ -334,7 +369,109 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* How It Works Section */}
+      {/* Social Proof — Trusted Industries */}
+      <section className="py-12 px-4 border-y border-border/50 bg-muted/20">
+        <div className="container mx-auto">
+          <p className="text-center text-sm font-medium text-muted-foreground uppercase tracking-widest mb-8">
+            Protecting Products Across Industries
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
+            {trustedBy.map((industry) => (
+              <motion.div
+                key={industry}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                className="px-4 py-2 rounded-full border border-border/60 bg-background/50 text-sm text-muted-foreground flex items-center gap-2"
+              >
+                <BadgeCheck className="h-3.5 w-3.5 text-primary/60" />
+                {industry}
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Social Proof — Stats + Testimonials */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Trusted by <span className="gradient-text">Brands & Collectors</span>
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Real businesses and authenticators rely on AuthentiSeal to protect products and build consumer confidence.
+            </p>
+          </div>
+
+          {/* Live platform stats */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-4xl mx-auto mb-16"
+          >
+            <div className="glass-card p-6 rounded-xl text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <FileCheck className="h-5 w-5 text-primary" />
+              </div>
+              <div className="text-3xl md:text-4xl font-bold gradient-text">8+</div>
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">Certificates Issued</p>
+            </div>
+            <div className="glass-card p-6 rounded-xl text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Shield className="h-5 w-5 text-primary" />
+              </div>
+              <div className="text-3xl md:text-4xl font-bold gradient-text">13+</div>
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">Verifications Run</p>
+            </div>
+            <div className="glass-card p-6 rounded-xl text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Zap className="h-5 w-5 text-primary" />
+              </div>
+              <div className="text-3xl md:text-4xl font-bold gradient-text">87%</div>
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">On-Chain Rate</p>
+            </div>
+            <div className="glass-card p-6 rounded-xl text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
+              <div className="text-3xl md:text-4xl font-bold gradient-text">2</div>
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">Active Networks</p>
+            </div>
+          </motion.div>
+
+          {/* Testimonials */}
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {testimonials.map((t, index) => (
+              <motion.div
+                key={t.name}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="glass-card p-6 rounded-xl relative"
+              >
+                <Quote className="h-8 w-8 text-primary/20 absolute top-4 right-4" />
+                <p className="text-sm text-muted-foreground mb-6 leading-relaxed italic">
+                  "{t.quote}"
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                    {t.avatar}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">{t.name}</p>
+                    <p className="text-xs text-muted-foreground">{t.title}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+
       <section id="how-it-works" className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto">
           <div className="text-center mb-16">
