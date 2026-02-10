@@ -31,6 +31,8 @@ import {
 import { getExplorerTxUrl } from "@/lib/solana-config";
 import { useToast } from "@/hooks/use-toast";
 import { WalletButton } from "@/components/wallet/WalletButton";
+import { useCredits } from "@/hooks/useCredits";
+import { supabase } from "@/integrations/supabase/client";
 
 const TREASURY_WALLET = "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAYWB";
 
@@ -64,6 +66,11 @@ export function AssetLPDepositModal({
   const { publicKey, sendTransaction, connected } = useWallet();
   const { connection } = useConnection();
   const { toast } = useToast();
+  const { credits, refetchCredits } = useCredits();
+
+  const isFirstLP = currentFloorValue === 0;
+  const creditCost = isFirstLP ? 20 : 5;
+  const hasEnoughCredits = (credits?.balance || 0) >= creditCost;
 
   useEffect(() => {
     if (open) {
@@ -88,8 +95,36 @@ export function AssetLPDepositModal({
       return;
     }
     if (!solAmount || solAmount <= 0) return;
+    if (!hasEnoughCredits) {
+      toast({
+        title: "Insufficient Credits",
+        description: `You need ${creditCost} credits to ${isFirstLP ? "create" : "add to"} an LP pair. You have ${credits?.balance || 0}.`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
+      // Deduct credits first
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { data: deductResult, error: deductError } = await supabase.rpc("deduct_credits", {
+        p_user_id: user.id,
+        p_amount: creditCost,
+        p_transaction_type: "certificate_creation" as const,
+        p_description: isFirstLP ? "Asset LP creation (20 credits)" : "Asset LP additional deposit (5 credits)",
+        p_reference_id: certificateId,
+      });
+
+      if (deductError) throw deductError;
+      const result = deductResult?.[0];
+      if (!result?.success) {
+        toast({ title: "Insufficient Credits", description: result?.message || "Not enough credits", variant: "destructive" });
+        return;
+      }
+      refetchCredits();
+
       setStep("sending_sol");
       const lamports = Math.floor(solAmount * LAMPORTS_PER_SOL);
       const tx = new Transaction().add(
@@ -276,6 +311,27 @@ export function AssetLPDepositModal({
               </div>
             )}
 
+            {/* Credit cost notice */}
+            {floorNum > 0 && (
+              <div className={`p-3 rounded-lg border text-sm ${hasEnoughCredits ? "border-border bg-muted/30" : "border-destructive/30 bg-destructive/5"}`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Credit Cost</span>
+                  <span className="font-semibold">{creditCost} credits</span>
+                </div>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-muted-foreground">Your Balance</span>
+                  <span className={`font-semibold ${hasEnoughCredits ? "" : "text-destructive"}`}>
+                    {credits?.balance || 0} credits
+                  </span>
+                </div>
+                {!hasEnoughCredits && (
+                  <p className="text-xs text-destructive mt-2">
+                    Insufficient credits. Purchase more to continue.
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Wallet */}
             {!connected && (
               <div className="space-y-2">
@@ -291,7 +347,7 @@ export function AssetLPDepositModal({
                   <Button
                     className="w-full"
                     onClick={handleDepositSol}
-                    disabled={step !== "input" || !solAmount || solAmount <= 0}
+                    disabled={step !== "input" || !solAmount || solAmount <= 0 || !hasEnoughCredits}
                   >
                     {step === "sending_sol" ? (
                       <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending SOL...</>
