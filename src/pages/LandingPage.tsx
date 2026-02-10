@@ -517,6 +517,12 @@ export function LandingPage() {
               <Link to="/developers" className="hover:text-foreground transition-colors py-1">
                 Developers
               </Link>
+              <Link to="/terms" className="hover:text-foreground transition-colors py-1">
+                Terms of Service
+              </Link>
+              <Link to="/privacy" className="hover:text-foreground transition-colors py-1">
+                Privacy Policy
+              </Link>
               <Link to="/auth" className="hover:text-foreground transition-colors py-1">
                 Sign In
               </Link>

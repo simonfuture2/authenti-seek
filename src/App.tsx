@@ -21,6 +21,8 @@ import ReportFakePage from "./pages/verifier/ReportFakePage";
 import PublicVerifyPage from "./pages/PublicVerifyPage";
 import IssuerProfilePage from "./pages/IssuerProfilePage";
 import DevelopersPage from "./pages/DevelopersPage";
+import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -71,6 +73,8 @@ function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/verify" element={<PublicVerifyPage />} />
       <Route path="/developers" element={<DevelopersPage />} />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/issuer/:issuerId" element={<IssuerProfilePage />} />
       <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
