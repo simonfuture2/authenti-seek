@@ -4,9 +4,16 @@ import {
   Transaction,
   TransactionInstruction,
   LAMPORTS_PER_SOL,
+  ComputeBudgetProgram,
 } from "@solana/web3.js";
 import { WalletContextState } from "@solana/wallet-adapter-react";
-import { SOLANA_RPC_ENDPOINT, getExplorerTxUrl, SOLANA_CLUSTER } from "@/lib/solana-config";
+import {
+  SOLANA_RPC_ENDPOINT,
+  getExplorerTxUrl,
+  SOLANA_CLUSTER,
+  DEFAULT_COMPUTE_UNIT_LIMIT,
+  DEFAULT_PRIORITY_FEE_MICRO_LAMPORTS,
+} from "@/lib/solana-config";
 import { clusterApiUrl } from "@solana/web3.js";
 
 // Solana Memo Program ID
@@ -66,6 +73,22 @@ export async function hashCertificateData(data: CertificateOnChainData): Promise
 }
 
 /**
+ * Add compute budget instructions (unit limit + priority fee) to a transaction.
+ * This improves reliability during network congestion.
+ */
+export function addComputeBudget(
+  tx: Transaction,
+  unitLimit: number = DEFAULT_COMPUTE_UNIT_LIMIT,
+  microLamports: number = DEFAULT_PRIORITY_FEE_MICRO_LAMPORTS
+): Transaction {
+  tx.add(
+    ComputeBudgetProgram.setComputeUnitLimit({ units: unitLimit }),
+    ComputeBudgetProgram.setComputeUnitPrice({ microLamports })
+  );
+  return tx;
+}
+
+/**
  * Store certificate hash on Solana blockchain using Memo program
  * Uses minimal data format to reduce exposure and on-chain footprint
  */
@@ -106,11 +129,12 @@ export async function storeCertificateOnChain(
   // Get recent blockhash
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
 
-  // Create transaction
+  // Create transaction with compute budget for congestion resilience
   const transaction = new Transaction({
     recentBlockhash: blockhash,
     feePayer: wallet.publicKey,
   }).add(memoInstruction);
+  addComputeBudget(transaction);
 
   // Sign and send transaction
   const signedTx = await wallet.signTransaction(transaction);
