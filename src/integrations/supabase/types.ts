@@ -14,6 +14,108 @@ export type Database = {
   }
   public: {
     Tables: {
+      asset_lp_deposits: {
+        Row: {
+          amount_token: number
+          amount_usd_at_deposit: number
+          certificate_id: string
+          created_at: string
+          deposit_type: Database["public"]["Enums"]["lp_deposit_type"]
+          depositor_id: string
+          id: string
+          solana_signature: string
+          status: Database["public"]["Enums"]["lp_deposit_status"]
+        }
+        Insert: {
+          amount_token: number
+          amount_usd_at_deposit: number
+          certificate_id: string
+          created_at?: string
+          deposit_type: Database["public"]["Enums"]["lp_deposit_type"]
+          depositor_id: string
+          id?: string
+          solana_signature: string
+          status?: Database["public"]["Enums"]["lp_deposit_status"]
+        }
+        Update: {
+          amount_token?: number
+          amount_usd_at_deposit?: number
+          certificate_id?: string
+          created_at?: string
+          deposit_type?: Database["public"]["Enums"]["lp_deposit_type"]
+          depositor_id?: string
+          id?: string
+          solana_signature?: string
+          status?: Database["public"]["Enums"]["lp_deposit_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_lp_deposits_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_lp_deposits_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_lp_summary: {
+        Row: {
+          certificate_id: string
+          created_at: string
+          floor_value_usd: number
+          id: string
+          is_active: boolean
+          total_sol: number
+          total_usdc: number
+          total_usdt: number
+          updated_at: string
+        }
+        Insert: {
+          certificate_id: string
+          created_at?: string
+          floor_value_usd?: number
+          id?: string
+          is_active?: boolean
+          total_sol?: number
+          total_usdc?: number
+          total_usdt?: number
+          updated_at?: string
+        }
+        Update: {
+          certificate_id?: string
+          created_at?: string
+          floor_value_usd?: number
+          id?: string
+          is_active?: boolean
+          total_sol?: number
+          total_usdc?: number
+          total_usdt?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_lp_summary_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: true
+            referencedRelation: "certificates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_lp_summary_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: true
+            referencedRelation: "certificates_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blockchain_audit_logs: {
         Row: {
           certificate_id: string | null
@@ -724,6 +826,8 @@ export type Database = {
         | "verification"
         | "refund"
         | "bonus"
+      lp_deposit_status: "pending" | "confirmed" | "failed"
+      lp_deposit_type: "sol" | "usdc" | "usdt"
       metadata_change_type:
         | "created"
         | "updated"
@@ -869,6 +973,8 @@ export const Constants = {
         "refund",
         "bonus",
       ],
+      lp_deposit_status: ["pending", "confirmed", "failed"],
+      lp_deposit_type: ["sol", "usdc", "usdt"],
       metadata_change_type: [
         "created",
         "updated",

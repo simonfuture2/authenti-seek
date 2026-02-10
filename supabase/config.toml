@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.collectai-identify]
 verify_jwt = false
+
+[functions.verify-lp-deposit]
+verify_jwt = false
