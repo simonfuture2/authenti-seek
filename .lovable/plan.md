@@ -1,124 +1,195 @@
 
 
-# Asset LP - Certificate Floor Value Backing
+# AuthentiSeal Security Audit & Hardening Plan
+## 2026 Audit Readiness Assessment
 
-## Overview
+This plan addresses each section of the expert-level audit checklist against the current AuthentiSeal codebase, identifying gaps and proposing concrete fixes.
 
-Add an "Asset LP" feature that lets issuers back their certificates with a SOL + stablecoin (USDC/USDT) pair, establishing a verifiable floor value. The initial implementation uses a treasury wallet with database tracking, designed for a future upgrade to on-chain escrow.
+---
 
-## How It Works
+## Summary of Findings
 
-When an issuer sets a floor value (e.g. $100) for a certificate:
-- They deposit 50% in SOL and 50% in USDC or USDT
-- The SOL portion can appreciate, growing the certificate's backed value
-- The stablecoin portion protects against SOL downside, preserving at least 50% of floor value
-- Issuers can make incremental deposits over time to increase the floor
+| Area | Status | Severity |
+|------|--------|----------|
+| NFT isMutable left on | Gap | HIGH |
+| Mint authority not revoked | Gap | HIGH |
+| No ImmutableOwner on token accounts | Gap | MEDIUM |
+| Metadata URI points to mutable edge function | By Design (documented) | INFO |
+| No Token-2022 / Transfer Hooks used | N/A | -- |
+| NFC replay attack protection missing | Gap | HIGH |
+| Auth inconsistency (getUser vs getClaims) | Gap | MEDIUM |
+| verify-public exposes issuer_id in URL | Gap | LOW |
+| nft-metadata brute-force hash lookup | Gap | MEDIUM |
+| LP deposit SPL verification skipped on devnet | Gap | MEDIUM |
+| Treasury wallet hardcoded to devnet | Gap | MEDIUM |
 
-## Architecture
+---
 
-**Phase 1 (this implementation):** Tokens are transferred to a designated project treasury wallet. Deposits are verified on-chain via the existing `purchase-credits` pattern (verify Solana transaction signature), then recorded in the database. The real-time SOL price ticker is used to show live backed value.
+## Phase 1: NFT Integrity Hardening
 
-**Phase 2 (future):** Migrate to PDA-based on-chain escrow where funds are locked per-certificate in a Solana program.
+### 1.1 Post-Mint Authority Revocation Option
 
-## Technical Plan
+**File:** `src/lib/metaplex.ts`
 
-### 1. Database Migration
+Currently `isMutable: true` is set with a comment that it supports transfers and metadata updates. After the final metadata update (e.g., transfer complete, certificate finalized), the issuer should have an option to "lock" the NFT by:
 
-**New table: `asset_lp_deposits`**
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid (PK) | Auto-generated |
-| certificate_id | uuid (FK) | Links to certificates |
-| depositor_id | uuid | Auth user who deposited |
-| deposit_type | enum (`sol`, `usdc`, `usdt`) | Token deposited |
-| amount_token | numeric | Raw token amount (SOL or stablecoins) |
-| amount_usd_at_deposit | numeric | USD equivalent at time of deposit |
-| solana_signature | text | On-chain tx proof |
-| status | enum (`pending`, `confirmed`, `failed`) | Verification status |
-| created_at | timestamptz | Deposit timestamp |
+- Setting `isMutable` to `false` via a Metaplex `updateV1` call
+- This prevents any future metadata URI changes (The Plastic Swap defense)
 
-**New table: `asset_lp_summary`**
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid (PK) | Auto-generated |
-| certificate_id | uuid (FK, unique) | One summary per cert |
-| total_sol | numeric | Total SOL deposited |
-| total_usdc | numeric | Total USDC deposited |
-| total_usdt | numeric | Total USDT deposited |
-| floor_value_usd | numeric | Original floor target |
-| is_active | boolean | Whether LP is active |
-| created_at / updated_at | timestamptz | Timestamps |
+**Changes:**
+- Add a new `lockCertificateNFT(wallet, mintAddress)` function in `src/lib/metaplex.ts` that calls `updateV1` with `isMutable: false`
+- Add a "Lock NFT (Permanent)" button in the certificate management UI that calls this function
+- Show a clear warning that this action is irreversible
 
-**RLS Policies:**
-- Issuers can SELECT/INSERT/UPDATE their own certificate LP data
-- Public can SELECT summary for active certificates (read-only, via the certificates_public pattern)
+### 1.2 Metadata URI Signing Acknowledgment
 
-**New enum types:** `lp_deposit_type` (sol, usdc, usdt) and `lp_deposit_status` (pending, confirmed, failed)
+The current architecture intentionally uses a mutable edge function URI (not IPFS) to support status updates and ownership transfers. This is documented and acceptable for COA use cases, but the plan should add:
 
-### 2. Backend Function: `verify-lp-deposit`
+- A visible "Metadata Source: AuthentiSeal API (Mutable)" indicator on the certificate detail page
+- Documentation in the developer portal explaining why mutable metadata is used and the trust model
 
-A new edge function that:
-1. Receives: certificate_id, solana_signature, deposit_type, expected_amount
-2. Fetches the transaction from Solana RPC
-3. Verifies the transfer went to the treasury wallet (existing `9WzDXwBb...` address)
-4. For SPL tokens (USDC/USDT), verifies the correct token mint and amount
-5. Records the confirmed deposit in `asset_lp_deposits`
-6. Updates the `asset_lp_summary` aggregates
-7. Creates a metadata version entry for audit trail
+---
 
-Token mint addresses (Solana mainnet):
-- USDC: `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`
-- USDT: `Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB`
+## Phase 2: NFC Replay Attack Protection
 
-### 3. New React Hook: `useAssetLP`
+**File:** `src/hooks/useNFCScanner.ts`, `src/lib/solana.ts`
 
-Located at `src/hooks/useAssetLP.ts`:
-- `getLPSummary(certificateId)` - fetch current LP backing for a certificate
-- `depositToLP(certificateId, depositType, amount, signature)` - submit a verified deposit
-- `getLPHistory(certificateId)` - fetch all deposits for a certificate
-- Uses `useSolPrice` hook to calculate live backed value (SOL portion dynamically priced)
+### Problem
+The NFC Tag ID is read and hashed, but there is no freshness check. An attacker can record a valid NFC scan result and replay it later to authorize a fraudulent verification or transfer.
 
-### 4. New UI Component: `AssetLPPanel`
+### Fix
+- Add a **timestamp + nonce** to NFC verification payloads
+- When an NFC tag is scanned for verification, the system should:
+  1. Record the scan timestamp
+  2. Generate a random nonce
+  3. Include both in the verification request
+  4. The backend should reject scans older than 5 minutes
+- Store the nonce in a `used_nfc_nonces` table to prevent reuse
 
-Located at `src/components/certificate/AssetLPPanel.tsx`:
+**Changes:**
+- Create a new database table `nfc_verification_nonces` with columns: `id`, `nonce`, `scanned_at`, `used_at`, `certificate_id`
+- Modify `useNFCScanner.ts` to generate a cryptographic nonce on each scan
+- Modify the verification flow to validate nonce freshness server-side via an edge function
 
-**For the certificate detail dialog (CertificatesPage):**
-- Shows current backed value with live SOL price updates
-- Breakdown: SOL portion (dynamic) + stablecoin portion (stable)
-- Visual progress bar toward floor value target
-- "Add Liquidity" button opening a deposit modal
+---
 
-**Deposit Modal (`AssetLPDepositModal.tsx`):**
-- Set or view the floor value target
-- Choose deposit type (SOL / USDC / USDT)
-- Enter amount (auto-calculates the USD equivalent)
-- Wallet sends the transaction, then the app verifies it
-- Shows confirmation with explorer link
+## Phase 3: Edge Function Auth Consistency
 
-### 5. Public Display
+**Files:** `supabase/functions/verify-authenticity/index.ts`, `supabase/functions/collectai-identify/index.ts`, `supabase/functions/certificate-ai/index.ts`
 
-- On the public verification page and certificate preview, show the "Floor Value Backed" badge
-- Display the live backed value (SOL at current price + stablecoins)
-- This adds trust signal for verifiers and buyers
+### Problem
+Three edge functions use the deprecated `getUser(token)` pattern instead of the recommended `getClaims(token)`. `getUser` makes a network round-trip to the auth server on every request, which is slower and less reliable.
 
-### 6. Files to Create/Modify
+### Fix
+- Migrate all three functions from `supabase.auth.getUser(token)` to `supabase.auth.getClaims(token)`
+- Extract user ID from `claimsData.claims.sub` instead of `userData.user.id`
 
-**New files:**
-- `src/hooks/useAssetLP.ts` - Data fetching and deposit hook
-- `src/components/certificate/AssetLPPanel.tsx` - LP summary display
-- `src/components/certificate/AssetLPDepositModal.tsx` - Deposit flow UI
-- `supabase/functions/verify-lp-deposit/index.ts` - On-chain deposit verification
+---
 
-**Modified files:**
-- `src/pages/issuer/CertificatesPage.tsx` - Add LP panel to certificate detail dialog
-- `src/components/certificate/CertificatePreview.tsx` - Show backed value badge
-- `src/pages/PublicVerifyPage.tsx` - Display LP backing info publicly
+## Phase 4: Public API Data Exposure Fixes
 
-### 7. Security Considerations
+### 4.1 Remove issuer_id from verify-public response URL
 
-- All deposits verified on-chain before recording (same pattern as credit purchases)
-- RLS ensures only certificate issuers can manage their own LP
-- Treasury wallet address validated server-side
-- SPL token mints validated against known addresses
-- Transaction signature uniqueness enforced (prevent replay)
+**File:** `supabase/functions/verify-public/index.ts`
+
+The `issuer_profile_url` field exposes the raw `issuer_id` UUID in the URL. Replace with a slug or obfuscated identifier.
+
+**Change:** Remove `issuer_profile_url` from the public API response, or replace the raw UUID with a hashed value.
+
+### 4.2 Harden nft-metadata hash lookup
+
+**File:** `supabase/functions/nft-metadata/index.ts`
+
+The fallback logic iterates all minted certificates (`LIMIT 100`) and compares hashes. This is:
+- Slow (O(n) per request)
+- Enables timing-based enumeration
+
+**Fix:** Add a `metadata_hash` column to the certificates table, pre-computed at mint time, and do a direct database lookup instead of iterating.
+
+---
+
+## Phase 5: LP Deposit Verification Hardening
+
+**File:** `supabase/functions/verify-lp-deposit/index.ts`
+
+### 5.1 Network-Aware Treasury and RPC
+
+The treasury wallet and RPC URL are hardcoded to devnet. These should read from environment variables and match the configured cluster.
+
+**Changes:**
+- Read `TREASURY_WALLET` from a secret/env var
+- Read `SOLANA_RPC` from env var (or derive from `SOLANA_NETWORK`)
+- Add a new secret `TREASURY_WALLET_ADDRESS`
+
+### 5.2 Strict SPL Verification
+
+The current code logs a warning but accepts unverified SPL deposits on devnet. Add a strict mode flag:
+- On mainnet: reject deposits where the SPL transfer cannot be verified
+- On devnet: allow with warning (current behavior)
+
+---
+
+## Phase 6: Items Not Applicable (Documented Rationale)
+
+These items from the checklist do **not** apply to AuthentiSeal's current architecture:
+
+| Item | Reason |
+|------|--------|
+| Token-2022 / Transfer Hooks | AuthentiSeal uses standard Metaplex NFTs, not Token-2022. No transfer hooks are implemented. Chain of custody is tracked off-chain via Supabase with on-chain anchoring via memo/NFT. |
+| ExtraAccountMetaList | Not applicable -- no Token-2022 extensions used |
+| Signer Privilege Propagation in hooks | Not applicable |
+| init_if_needed / Anchor discriminators | AuthentiSeal does not deploy custom Solana programs. It uses existing programs (Memo, Metaplex). No on-chain program code to audit. |
+| Compute Unit profiling for hooks | Not applicable |
+| Trident fuzzing / Solana Verify | Not applicable -- no custom program bytecode deployed |
+
+---
+
+## Implementation Order
+
+1. **Phase 3** - Edge function auth fix (quick win, low risk)
+2. **Phase 4.2** - NFT metadata hash lookup optimization (security + performance)
+3. **Phase 2** - NFC replay protection (new table + edge function)
+4. **Phase 1** - NFT lock functionality (new UI + Metaplex call)
+5. **Phase 5** - LP deposit hardening (env vars + strict mode)
+6. **Phase 4.1** - Public API issuer_id cleanup (minor)
+
+---
+
+## Technical Details
+
+### New Database Table (Phase 2)
+
+```text
+nfc_verification_nonces
++----------------+-----------+----------+
+| column         | type      | nullable |
++----------------+-----------+----------+
+| id             | uuid (PK) | no       |
+| nonce          | text      | no       |
+| certificate_id | uuid (FK) | no       |
+| scanned_at     | timestamptz | no     |
+| used_at        | timestamptz | yes    |
+| created_at     | timestamptz | no     |
++----------------+-----------+----------+
+```
+
+### New Database Column (Phase 4.2)
+
+Add `metadata_hash TEXT` to the `certificates` table, populated at mint time.
+
+### New Secret (Phase 5)
+
+`TREASURY_WALLET_ADDRESS` -- the production treasury wallet public key.
+
+### Files Modified
+
+- `src/lib/metaplex.ts` -- add `lockCertificateNFT` function
+- `src/hooks/useNFCScanner.ts` -- add nonce generation
+- `supabase/functions/verify-authenticity/index.ts` -- getClaims migration
+- `supabase/functions/collectai-identify/index.ts` -- getClaims migration
+- `supabase/functions/certificate-ai/index.ts` -- getClaims migration
+- `supabase/functions/verify-public/index.ts` -- remove issuer_id exposure
+- `supabase/functions/nft-metadata/index.ts` -- direct hash lookup
+- `supabase/functions/verify-lp-deposit/index.ts` -- env-based config + strict SPL check
+- New edge function or modification for NFC nonce validation
 
