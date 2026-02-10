@@ -12,6 +12,7 @@ import {
   X,
   User,
   FileImage,
+  Droplets,
 } from "lucide-react";
 import authentisealIcon from "@/assets/authentiseal-icon.png";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
@@ -32,6 +33,7 @@ interface DashboardLayoutProps {
 const issuerNavItems = [
   { icon: PlusCircle, label: "Create COA", path: "/issuer/create" },
   { icon: FileImage, label: "Certificates", path: "/issuer/certificates" },
+  { icon: Droplets, label: "LP Certificates", path: "/issuer/certificates?lp=true" },
   { icon: Send, label: "Transfer", path: "/issuer/transfer" },
   { icon: BarChart3, label: "Analytics", path: "/issuer/analytics" },
   { icon: Settings, label: "Settings", path: "/settings" },
@@ -110,7 +112,8 @@ export function IssuerDashboardLayout({ children }: DashboardLayoutProps) {
               }}
               className={cn(
                 "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
-                location.pathname === item.path
+                (location.pathname + location.search) === item.path ||
+                (item.path === "/issuer/certificates" && location.pathname === "/issuer/certificates" && !location.search)
                   ? "bg-sidebar-accent text-sidebar-accent-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50"
               )}
