@@ -71,8 +71,8 @@ export function IssuerProfilePage() {
 
     try {
       // Fetch profile
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
+      const { data: profileData, error: profileError } = await (supabase as any)
+        .from("profiles_public")
         .select("user_id, display_name, company_name, avatar_url, created_at")
         .eq("user_id", issuerId)
         .maybeSingle();
