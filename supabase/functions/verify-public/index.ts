@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
         on_chain: !!cert.solana_signature,
         issuer: issuerProfile,
         verify_url: `${BASE_URL}/verify?serial=${encodeURIComponent(cert.serial_number)}`,
-        issuer_profile_url: cert.issuer_id ? `${BASE_URL}/issuer/${cert.issuer_id}` : null,
+        issuer_profile_url: null, // Removed: raw issuer UUID no longer exposed in public API
       },
     };
 

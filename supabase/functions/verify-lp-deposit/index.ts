@@ -7,8 +7,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const TREASURY_WALLET = "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAYWB";
-const SOLANA_RPC = "https://api.devnet.solana.com";
+const TREASURY_WALLET = Deno.env.get("TREASURY_WALLET_ADDRESS") || "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAYWB";
+const SOLANA_RPC = Deno.env.get("SOLANA_RPC_URL") || "https://api.devnet.solana.com";
+const IS_MAINNET = SOLANA_RPC.includes("mainnet");
 
 // SPL token mints (mainnet addresses – on devnet these won't match real USDC/USDT,
 // but the architecture is ready for mainnet migration)
@@ -170,11 +171,15 @@ Deno.serve(async (req: Request) => {
       const treasuryTokenEntry = postTokenBalances.find(
         (b: any) => b.mint === expectedMint && b.owner === TREASURY_WALLET
       );
-      // If we can't find the treasury in post token balances, accept on devnet
-      // but log a warning. On mainnet this should be strict.
       if (!treasuryTokenEntry) {
+        if (IS_MAINNET) {
+          return new Response(
+            JSON.stringify({ error: `Could not verify ${deposit_type.toUpperCase()} transfer to treasury. SPL verification is required on mainnet.` }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
         console.warn(
-          `Could not verify SPL transfer for ${deposit_type} to treasury. Proceeding with deposit recording.`
+          `[DEVNET] Could not verify SPL transfer for ${deposit_type} to treasury. Proceeding with deposit recording.`
         );
       }
     }

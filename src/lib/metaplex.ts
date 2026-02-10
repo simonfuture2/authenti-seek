@@ -3,6 +3,7 @@ import {
   createNft, 
   mplTokenMetadata,
   fetchDigitalAsset,
+  updateV1,
 } from "@metaplex-foundation/mpl-token-metadata";
 import {
   generateSigner,
@@ -145,6 +146,35 @@ export async function fetchNFTDetails(
   const umi = createUmiWithWallet(wallet);
   const asset = await fetchDigitalAsset(umi, umiPublicKey(mintAddress));
   return asset;
+}
+
+/**
+ * Lock an NFT by setting isMutable to false.
+ * WARNING: This is irreversible. Once locked, metadata can never be updated.
+ * This prevents "The Plastic Swap" attack where metadata URI is changed post-mint.
+ */
+export async function lockCertificateNFT(
+  wallet: WalletContextState,
+  mintAddress: string
+): Promise<string> {
+  if (!wallet.publicKey || !wallet.signTransaction) {
+    throw new Error("Wallet not connected");
+  }
+
+  const umi = createUmiWithWallet(wallet);
+  const mintPubkey = umiPublicKey(mintAddress);
+
+  // Fetch current asset to get the update authority
+  const asset = await fetchDigitalAsset(umi, mintPubkey);
+
+  const { signature } = await updateV1(umi, {
+    mint: mintPubkey,
+    authority: umi.identity,
+    data: { ...asset.metadata, sellerFeeBasisPoints: asset.metadata.sellerFeeBasisPoints },
+    isMutable: false,
+  }).sendAndConfirm(umi);
+
+  return bs58.encode(signature);
 }
 
 /**
