@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import {
@@ -52,6 +53,28 @@ import { WalletButton } from "@/components/wallet/WalletButton";
 import { MintModeSelector } from "@/components/certificate/MintModeSelector";
 import { AssetLPPanel } from "@/components/certificate/AssetLPPanel";
 
+// Hook to fetch which certificates have LP backing
+function useLPCertificateIds(certificates: Certificate[]) {
+  const [lpCertificateIds, setLpCertificateIds] = useState<Set<string>>(new Set());
+  const [isLPLoading, setIsLPLoading] = useState(false);
+
+  useEffect(() => {
+    if (certificates.length === 0) return;
+    setIsLPLoading(true);
+    const ids = certificates.map(c => c.id);
+    supabase
+      .from("asset_lp_summary")
+      .select("certificate_id")
+      .in("certificate_id", ids)
+      .then(({ data }) => {
+        setLpCertificateIds(new Set((data || []).map((d: any) => d.certificate_id)));
+        setIsLPLoading(false);
+      });
+  }, [certificates]);
+
+  return { lpCertificateIds, isLPLoading };
+}
+
 type ViewMode = "grid" | "list";
 type StatusFilter = "all" | "active" | "transferred" | "revoked" | "chain_pending";
 
@@ -100,6 +123,11 @@ export default function CertificatesPage() {
   const { certificates, isLoading, refetch } = useCertificates();
   const { toast } = useToast();
   const { mintCertificate, isConnected, publicKey, isSubmitting } = useNFTMinting();
+  const [searchParams] = useSearchParams();
+  const isLPView = searchParams.get("lp") === "true";
+
+  // Fetch LP summaries for all certificates to know which have LP
+  const { lpCertificateIds, isLPLoading } = useLPCertificateIds(certificates);
 
   // Store certificate on-chain
   const handleStoreOnChain = async (cert: Certificate) => {
@@ -285,7 +313,10 @@ export default function CertificatesPage() {
       matchesStatus = cert.status === statusFilter;
     }
 
-    return matchesSearch && matchesStatus;
+    // LP filter from URL param
+    const matchesLP = isLPView ? lpCertificateIds.has(cert.id) : true;
+
+    return matchesSearch && matchesStatus && matchesLP;
   });
 
   // Count chain pending certificates
@@ -345,9 +376,13 @@ export default function CertificatesPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h1 className="text-2xl md:text-3xl font-bold mb-2">My Certificates</h1>
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">
+            {isLPView ? "LP Certificates" : "My Certificates"}
+          </h1>
           <p className="text-muted-foreground">
-            View and manage all certificates you've issued
+            {isLPView
+              ? "Certificates with Asset LP liquidity backing"
+              : "View and manage all certificates you've issued"}
           </p>
         </motion.div>
 
