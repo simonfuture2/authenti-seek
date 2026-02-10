@@ -713,6 +713,7 @@ export function CreateCOAPage() {
                                 className="pl-10 min-h-[100px]"
                               />
                     </div>
+                          </FormControl>
 
                     {/* CollectAI Auto-Identify */}
                     <CollectAIIdentifyButton
@@ -724,7 +725,6 @@ export function CreateCOAPage() {
                       disabled={createCertificate.isPending}
                       hasImage={productImages.length > 0}
                     />
-                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
