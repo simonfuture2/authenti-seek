@@ -119,8 +119,23 @@ export function useNFCScanner(): UseNFCScannerReturn {
             .toUpperCase()
             .trim();
           
+          // Generate a cryptographic nonce for replay protection
+          const nonceBytes = new Uint8Array(16);
+          crypto.getRandomValues(nonceBytes);
+          const nonce = Array.from(nonceBytes)
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join("");
+
           setLastScannedId(formattedId);
           setIsScanning(false);
+          
+          // Store nonce and timestamp in sessionStorage for verification
+          const scanPayload = {
+            tagId: formattedId,
+            nonce,
+            scannedAt: new Date().toISOString(),
+          };
+          sessionStorage.setItem("nfc_scan_payload", JSON.stringify(scanPayload));
           
           // Cleanup
           ndefReader.removeEventListener("reading", handleReading);
@@ -212,4 +227,38 @@ export function formatNFCTagId(tagId: string): string {
  */
 export function normalizeNFCTagId(tagId: string): string {
   return tagId.replace(/[^A-Fa-f0-9]/g, "").toUpperCase();
+}
+
+/**
+ * Get the NFC scan payload (nonce + timestamp) for replay protection.
+ * Returns null if no scan payload is available or if it has expired (>5 min).
+ */
+export function getNFCScanPayload(): { tagId: string; nonce: string; scannedAt: string } | null {
+  const raw = sessionStorage.getItem("nfc_scan_payload");
+  if (!raw) return null;
+  
+  try {
+    const payload = JSON.parse(raw);
+    const scannedAt = new Date(payload.scannedAt);
+    const now = new Date();
+    const ageMs = now.getTime() - scannedAt.getTime();
+    
+    // Reject scans older than 5 minutes
+    if (ageMs > 5 * 60 * 1000) {
+      sessionStorage.removeItem("nfc_scan_payload");
+      return null;
+    }
+    
+    return payload;
+  } catch {
+    sessionStorage.removeItem("nfc_scan_payload");
+    return null;
+  }
+}
+
+/**
+ * Clear the NFC scan payload after use (prevents reuse)
+ */
+export function clearNFCScanPayload(): void {
+  sessionStorage.removeItem("nfc_scan_payload");
 }

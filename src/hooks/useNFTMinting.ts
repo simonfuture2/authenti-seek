@@ -3,6 +3,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useToast } from "@/hooks/use-toast";
 import { logError } from "@/lib/errorHandler";
 import { useBlockchainAudit } from "@/hooks/useBlockchainAudit";
+import { supabase } from "@/integrations/supabase/client";
 import {
   mintCertificateNFT,
   createNFTMetadataJson,
@@ -107,6 +108,15 @@ export function useNFTMinting() {
 
           // Create metadata URI pointing to our edge function (async)
           const metadataUri = await createMetadataUri(certificate.serial_number);
+
+          // Store the metadata hash in the certificates table for O(1) lookups
+          const metadataHash = metadataUri.split("/").pop() || "";
+          if (metadataHash) {
+            await supabase
+              .from("certificates")
+              .update({ metadata_hash: metadataHash })
+              .eq("id", certificate.id);
+          }
 
           // Mint the NFT
           const result = await mintCertificateNFT(wallet, nftMetadata, metadataUri);

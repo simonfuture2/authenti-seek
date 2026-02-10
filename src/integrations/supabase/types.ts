@@ -286,6 +286,7 @@ export type Database = {
           issued_at: string
           issuer_id: string | null
           metadata: Json | null
+          metadata_hash: string | null
           physical_attributes: Json
           product_category: string | null
           product_description: string | null
@@ -308,6 +309,7 @@ export type Database = {
           issued_at?: string
           issuer_id?: string | null
           metadata?: Json | null
+          metadata_hash?: string | null
           physical_attributes?: Json
           product_category?: string | null
           product_description?: string | null
@@ -330,6 +332,7 @@ export type Database = {
           issued_at?: string
           issuer_id?: string | null
           metadata?: Json | null
+          metadata_hash?: string | null
           physical_attributes?: Json
           product_category?: string | null
           product_description?: string | null
@@ -473,6 +476,48 @@ export type Database = {
           },
           {
             foreignKeyName: "fake_reports_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nfc_verification_nonces: {
+        Row: {
+          certificate_id: string
+          created_at: string
+          id: string
+          nonce: string
+          scanned_at: string
+          used_at: string | null
+        }
+        Insert: {
+          certificate_id: string
+          created_at?: string
+          id?: string
+          nonce: string
+          scanned_at?: string
+          used_at?: string | null
+        }
+        Update: {
+          certificate_id?: string
+          created_at?: string
+          id?: string
+          nonce?: string
+          scanned_at?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfc_verification_nonces_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfc_verification_nonces_certificate_id_fkey"
             columns: ["certificate_id"]
             isOneToOne: false
             referencedRelation: "certificates_public"

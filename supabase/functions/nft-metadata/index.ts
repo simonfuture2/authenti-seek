@@ -110,15 +110,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Initialize Supabase client with ANON key for RLS-protected access
+    // Initialize Supabase client with service role for metadata lookup
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Try to find certificate by serial number first
     let certificate = null;
     
-    // Query the public view (respects RLS and hides sensitive fields)
     const { data: certBySerial } = await supabase
       .from("certificates_public")
       .select("*")
@@ -128,22 +127,22 @@ Deno.serve(async (req) => {
     if (certBySerial) {
       certificate = certBySerial;
     } else {
-      // If not found by serial, search all certificates and match by hash
-      // This handles the hashed URL approach
-      const { data: allCerts } = await supabase
-        .from("certificates_public")
-        .select("*")
-        .not("solana_signature", "is", null) // Only minted certificates
-        .limit(100);
-      
-      if (allCerts) {
-        for (const cert of allCerts) {
-          const certHash = await hashSerialNumber(cert.serial_number);
-          if (certHash === lookupKey) {
-            certificate = cert;
-            break;
-          }
-        }
+      // Try direct metadata_hash lookup (O(1) instead of O(n))
+      const { data: certByHash } = await supabase
+        .from("certificates")
+        .select("serial_number")
+        .eq("metadata_hash", lookupKey)
+        .not("solana_signature", "is", null)
+        .maybeSingle();
+
+      if (certByHash) {
+        // Re-fetch from public view for safe data exposure
+        const { data: publicCert } = await supabase
+          .from("certificates_public")
+          .select("*")
+          .eq("serial_number", certByHash.serial_number)
+          .maybeSingle();
+        certificate = publicCert;
       }
     }
 
