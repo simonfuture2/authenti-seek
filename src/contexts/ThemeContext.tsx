@@ -18,7 +18,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const stored = localStorage.getItem("authentiseal-theme") as ThemeMode;
       if (stored && ["light", "dark", "seeker"].includes(stored)) return stored;
     }
-    return "dark";
+    return "light";
   });
 
   useEffect(() => {
