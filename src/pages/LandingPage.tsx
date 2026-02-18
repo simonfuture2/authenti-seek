@@ -297,20 +297,25 @@ export function LandingPage() {
             </div>
           </motion.div>
 
-          {/* Banner */}
+          {/* Demo Video */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
             className="mt-12 max-w-4xl mx-auto"
           >
-            <div className="rounded-2xl overflow-hidden border border-border/50 shadow-2xl shadow-primary/10">
-              <img
-                src={authentisealBanner}
-                alt="AuthentiSeal - Blockchain Certificates of Authenticity"
-                className="w-full h-auto"
-              />
+            <div className="rounded-2xl overflow-hidden border border-border/50 shadow-2xl shadow-primary/10 bg-card">
+              <div className="relative w-full" style={{ padding: "56.25% 0 0 0" }}>
+                <iframe
+                  src="https://player.vimeo.com/video/1163333554?badge=0&autopause=0&player_id=0&app_id=58479"
+                  allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"
+                  allowFullScreen
+                  className="absolute top-0 left-0 w-full h-full"
+                  title="AuthentiSeal Demo"
+                />
+              </div>
             </div>
+            <p className="text-sm text-muted-foreground mt-3">Watch how AuthentiSeal works in under 2 minutes</p>
           </motion.div>
 
           {/* Stats */}
