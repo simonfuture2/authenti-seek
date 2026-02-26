@@ -1,43 +1,35 @@
 
 
-## Plan: JWT Verification & Certificate Pre-fill from CollectAI
+## Plan: POST Callback to CollectAI After Certificate Creation
 
 ### Overview
-CollectAI will send users to AuthentiSeal's `/issuer/create` route with a signed JWT in the URL. AuthentiSeal needs to:
-1. Create an edge function to verify the JWT and return the decoded card data
-2. Add an `AUTHENTISEAL_SHARED_SECRET` secret for JWT verification
-3. Update `CreateCOAPage` to detect the JWT token from URL params, call the edge function to verify it, and pre-fill the certificate form
+After a certificate is created from a CollectAI deep link, AuthentiSeal needs to POST back to the `callback_url` from the decoded JWT with a signed response JWT containing the certificate details.
 
-### Step 1: Add the `AUTHENTISEAL_SHARED_SECRET` secret
-- Use the secrets tool to request the shared secret used to sign/verify JWTs between CollectAI and AuthentiSeal
-- This must match the secret CollectAI uses to sign JWTs
+### Step 1: Update `verify-collectai-jwt` edge function
+Extract `callback_url` and `card_id` from the decoded JWT payload and return them alongside existing card data.
 
-### Step 2: Create `verify-collectai-jwt` edge function
-New file: `supabase/functions/verify-collectai-jwt/index.ts`
-- Accepts POST with `{ token: string }`
-- Verifies the JWT using `AUTHENTISEAL_SHARED_SECRET` via the Web Crypto API (HMAC SHA-256)
-- Extracts payload: `{ cardName, cardDescription, cardCategory, cardImage, userEmail, grade, serialNumber }`
-- Returns the decoded payload if valid, 401 if invalid/expired
-- Includes standard CORS headers
+**File:** `supabase/functions/verify-collectai-jwt/index.ts`
+- Add `callbackUrl: payload.callback_url || null` and `cardId: payload.card_id || null` to the returned `cardData` object
 
-### Step 3: Update `CreateCOAPage` to detect and consume the JWT
-- Read `?token=` query param from URL using `useSearchParams`
-- On mount, if `token` is present, call the `verify-collectai-jwt` edge function
-- On success, pre-fill the form fields:
-  - `product_name` ← `cardName`
-  - `product_description` ← `cardDescription`
-  - `product_category` ← map `cardCategory` to existing categories
-  - `serial_number` ← `serialNumber` (if provided)
-  - `productImages` ← `[cardImage]` (if provided)
-- Show a toast/banner: "Pre-filled from CollectAI"
-- On failure (invalid/expired JWT), show an error toast and let user fill manually
+### Step 2: Create `collectai-callback` edge function
+**New file:** `supabase/functions/collectai-callback/index.ts`
+- Accepts POST with `{ callback_url, card_id, serial_number }`
+- Signs a JWT using `AUTHENTISEAL_SHARED_SECRET` with payload: `{ source: "authentiseal", card_id, serial_number, iat, exp }`
+- Uses Web Crypto API (HMAC-SHA256) to sign — mirrors the existing verification logic but in reverse
+- POSTs to `callback_url` with body: `{ token, card_id, serial_number }`
+- Validates `callback_url` is a trusted domain (e.g., `collectai.lovable.app` or its Supabase functions URL) before sending
+- Returns success/failure status
+- Add `[functions.collectai-callback] verify_jwt = false` to `supabase/config.toml`
 
-### Step 4: Update `cross-app.ts` with a new deep link helper
-- Add a `createCOAUrl(token: string)` helper to `ECOSYSTEM_APPS.authentiseal` that builds the deep link URL: `https://authenti-seek.lovable.app/issuer/create?token=<jwt>&ref=collectai`
+### Step 3: Update `CreateCOAPage.tsx` to store and use callback data
+- Store `callbackUrl` and `cardId` from the JWT verification response in component state
+- After certificate creation succeeds (line ~414, after `setCreatedCert(result)`), call the `collectai-callback` edge function with `callback_url`, `card_id`, and the certificate's `serial_number`
+- Show a toast on success: "CollectAI has been notified"
+- On failure, show a warning toast but don't block the user — the certificate is already created
 
 ### Technical Details
-- JWT verification uses `crypto.subtle.importKey` + `crypto.subtle.verify` (HMAC-SHA256) in the edge function — no external dependencies needed
-- The JWT payload is base64url-decoded and parsed server-side; the frontend never touches the secret
-- Token expiry (`exp` claim) is validated to prevent replay attacks
-- The edge function is public (`verify_jwt = false` in config.toml) since it does its own JWT validation
+- JWT signing in the edge function uses `crypto.subtle.importKey` + `crypto.subtle.sign` (HMAC-SHA256), then base64url-encodes the result
+- The callback URL is validated against an allowlist to prevent SSRF
+- The callback is fire-and-forget from the user's perspective — certificate creation is not gated on it
+- Token expiry set to 5 minutes to prevent replay
 
