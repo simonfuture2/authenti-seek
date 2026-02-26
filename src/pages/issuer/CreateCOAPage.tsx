@@ -103,6 +103,8 @@ export function CreateCOAPage() {
   const [collectAIToken] = useState(() => searchParams.get("token"));
   const [collectAIPrefilled, setCollectAIPrefilled] = useState(false);
   const [collectAILoading, setCollectAILoading] = useState(false);
+  const [collectAICallbackUrl, setCollectAICallbackUrl] = useState<string | null>(null);
+  const [collectAICardId, setCollectAICardId] = useState<string | null>(null);
   const isCollectAIReferral = searchParams.get("ref") === "collectai";
   const [createdCert, setCreatedCert] = useState<Certificate | null>(null);
   const [storeOnChain, setStoreOnChain] = useState(true);
@@ -217,6 +219,8 @@ export function CreateCOAPage() {
         }
         if (cardData.serialNumber) form.setValue("serial_number", cardData.serialNumber);
         if (cardData.cardImage) setProductImages([cardData.cardImage]);
+        if (cardData.callbackUrl) setCollectAICallbackUrl(cardData.callbackUrl);
+        if (cardData.cardId) setCollectAICardId(cardData.cardId);
 
         setCollectAIPrefilled(true);
         toast({ title: "Pre-filled from CollectAI", description: "Certificate fields have been populated from your CollectAI data." });
@@ -412,6 +416,27 @@ export function CreateCOAPage() {
     }
 
     setCreatedCert(result);
+
+    // Fire CollectAI callback if this was a CollectAI referral
+    if (collectAICallbackUrl && collectAICardId) {
+      try {
+        const { error: cbError } = await supabase.functions.invoke("collectai-callback", {
+          body: {
+            callback_url: collectAICallbackUrl,
+            card_id: collectAICardId,
+            serial_number: data.serial_number,
+          },
+        });
+        if (cbError) {
+          console.error("CollectAI callback failed:", cbError);
+          toast({ title: "CollectAI notification failed", description: "The certificate was created, but we couldn't notify CollectAI.", variant: "destructive" });
+        } else {
+          toast({ title: "CollectAI has been notified", description: "Certificate details sent back to CollectAI." });
+        }
+      } catch (err) {
+        console.error("CollectAI callback error:", err);
+      }
+    }
   };
 
   const generateSerialNumber = () => {

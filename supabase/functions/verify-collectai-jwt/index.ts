@@ -118,6 +118,8 @@ Deno.serve(async (req) => {
       userEmail: payload.userEmail || null,
       grade: payload.grade || null,
       serialNumber: payload.serialNumber || null,
+      callbackUrl: payload.callback_url || null,
+      cardId: payload.card_id || null,
     };
 
     return new Response(JSON.stringify({ success: true, data: cardData }), {
