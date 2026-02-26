@@ -3,30 +3,19 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-app-key, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-interface PublicCertificateResponse {
-  verified: boolean;
-  certificate: {
-    id: string;
-    serial_number: string;
-    product_name: string;
-    product_description: string | null;
-    product_category: string | null;
-    product_images: string[] | null;
-    status: string;
-    issued_at: string;
-    on_chain: boolean;
-    solana_signature: string | null;
-    issuer: {
-      display_name: string | null;
-      company_name: string | null;
-    } | null;
-    verify_url: string;
-    issuer_profile_url: string | null;
-  } | null;
-  error?: string;
+/**
+ * Validate cross-app shared key for ecosystem partner requests.
+ * Returns true if the request has a valid shared key, false otherwise.
+ * Public requests without the key are still allowed (open API).
+ */
+function validateCrossAppKey(req: Request): { isPartnerRequest: boolean; isValid: boolean } {
+  const appKey = req.headers.get("x-app-key");
+  if (!appKey) return { isPartnerRequest: false, isValid: false };
+  const sharedKey = Deno.env.get("CROSS_APP_SHARED_KEY");
+  return { isPartnerRequest: true, isValid: !!sharedKey && appKey === sharedKey };
 }
 
 Deno.serve(async (req) => {
@@ -35,6 +24,15 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Validate cross-app key if provided (partner requests get uncached responses)
+    const { isPartnerRequest, isValid } = validateCrossAppKey(req);
+    if (isPartnerRequest && !isValid) {
+      return new Response(
+        JSON.stringify({ verified: false, certificate: null, error: "Invalid cross-app key" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Only allow GET requests
     if (req.method !== "GET") {
       return new Response(
@@ -142,15 +140,16 @@ Deno.serve(async (req) => {
       },
     };
 
-    // Add rate limiting headers
+    // Partner requests skip cache for real-time data
     return new Response(JSON.stringify(response), {
       status: 200,
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json",
-        "Cache-Control": "public, max-age=60",
-        "X-RateLimit-Limit": "100",
+        "Cache-Control": isPartnerRequest ? "no-cache" : "public, max-age=60",
+        "X-RateLimit-Limit": isPartnerRequest ? "500" : "100",
         "X-Powered-By": "AuthentiSeal",
+        "X-Partner-Verified": isPartnerRequest ? "true" : "false",
       },
     });
   } catch (error) {
