@@ -103,6 +103,7 @@ export function CreateCOAPage() {
   const [collectAIToken] = useState(() => searchParams.get("token"));
   const [collectAIPrefilled, setCollectAIPrefilled] = useState(false);
   const [collectAILoading, setCollectAILoading] = useState(false);
+  const isCollectAIReferral = searchParams.get("ref") === "collectai";
   const [createdCert, setCreatedCert] = useState<Certificate | null>(null);
   const [storeOnChain, setStoreOnChain] = useState(true);
   const [onChainSignature, setOnChainSignature] = useState<string | null>(null);
@@ -643,6 +644,43 @@ export function CreateCOAPage() {
               AI Enhanced
             </Badge>
           </div>
+
+          {/* CollectAI Referral Banner */}
+          {isCollectAIReferral && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                <ScanSearch className="h-4 w-4 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">
+                  You were referred from{" "}
+                  <a
+                    href="https://collectai.lovable.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline font-semibold"
+                  >
+                    CollectAI
+                  </a>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {collectAIPrefilled
+                    ? "Your card data has been pre-filled below."
+                    : collectAILoading
+                      ? "Verifying your data…"
+                      : "AI-Powered Card Grading → Blockchain-Verified Certificate"}
+                </p>
+              </div>
+              <Badge variant="secondary" className="shrink-0 text-xs">
+                <Sparkles className="mr-1 h-3 w-3" />
+                Ecosystem
+              </Badge>
+            </motion.div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Form Column */}
