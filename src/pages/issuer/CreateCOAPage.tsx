@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -98,6 +99,10 @@ const categories = [
 ];
 
 export function CreateCOAPage() {
+  const [searchParams] = useSearchParams();
+  const [collectAIToken] = useState(() => searchParams.get("token"));
+  const [collectAIPrefilled, setCollectAIPrefilled] = useState(false);
+  const [collectAILoading, setCollectAILoading] = useState(false);
   const [createdCert, setCreatedCert] = useState<Certificate | null>(null);
   const [storeOnChain, setStoreOnChain] = useState(true);
   const [onChainSignature, setOnChainSignature] = useState<string | null>(null);
@@ -179,6 +184,55 @@ export function CreateCOAPage() {
   const watchedSerialNumber = form.watch("serial_number");
   const watchedCategory = form.watch("product_category");
   const watchedDescription = form.watch("product_description");
+
+  // Verify CollectAI JWT and pre-fill form
+  useEffect(() => {
+    if (!collectAIToken || collectAIPrefilled) return;
+
+    const verifyAndPrefill = async () => {
+      setCollectAILoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("verify-collectai-jwt", {
+          body: { token: collectAIToken },
+        });
+
+        if (error || !data?.success) {
+          toast({
+            title: "CollectAI Token Invalid",
+            description: data?.error || "Could not verify the token. Please fill in the form manually.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const cardData = data.data;
+        if (cardData.cardName) form.setValue("product_name", cardData.cardName);
+        if (cardData.cardDescription) form.setValue("product_description", cardData.cardDescription);
+        if (cardData.cardCategory) {
+          const matched = categories.find(
+            (c) => c.toLowerCase() === cardData.cardCategory?.toLowerCase()
+          );
+          if (matched) form.setValue("product_category", matched);
+        }
+        if (cardData.serialNumber) form.setValue("serial_number", cardData.serialNumber);
+        if (cardData.cardImage) setProductImages([cardData.cardImage]);
+
+        setCollectAIPrefilled(true);
+        toast({ title: "Pre-filled from CollectAI", description: "Certificate fields have been populated from your CollectAI data." });
+      } catch (err) {
+        console.error("CollectAI JWT verification failed:", err);
+        toast({
+          title: "Verification Error",
+          description: "Failed to verify CollectAI token. Please fill in the form manually.",
+          variant: "destructive",
+        });
+      } finally {
+        setCollectAILoading(false);
+      }
+    };
+
+    verifyAndPrefill();
+  }, [collectAIToken, collectAIPrefilled]);
 
   const handleFilesSelected = async (files: File[]) => {
     const urls = await uploadImages(files);

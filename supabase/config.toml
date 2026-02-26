@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.verify-lp-deposit]
 verify_jwt = false
+
+[functions.verify-collectai-jwt]
+verify_jwt = false
