@@ -17,6 +17,8 @@ export const ECOSYSTEM_APPS = {
       `https://vfttlgqsexcdpxihtwzl.supabase.co/functions/v1/verify-public?serial=${encodeURIComponent(serial)}`,
     collectaiIdentifyUrl:
       "https://vfttlgqsexcdpxihtwzl.supabase.co/functions/v1/collectai-identify",
+    createCOAUrl: (token: string) =>
+      `https://authenti-seek.lovable.app/issuer/create?token=${encodeURIComponent(token)}&ref=collectai`,
   },
   collectai: {
     name: "CollectAI",
