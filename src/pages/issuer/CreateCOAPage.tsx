@@ -348,6 +348,17 @@ export function CreateCOAPage() {
   };
 
   const onSubmit = async (data: CreateCertificateForm) => {
+    // Hard guard: never seal while the grader cross-check is in mismatch.
+    if (graderStatus === "mismatch") {
+      toast({
+        title: "Cannot seal — grader mismatch",
+        description:
+          "The grading company's record describes a different card. Resolve or report before sealing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Create certificate in database first
     const result = await createCertificate.mutateAsync({
       serial_number: data.serial_number,
@@ -362,6 +373,32 @@ export function CreateCOAPage() {
         authenticityScore: authenticityScore,
       },
     });
+
+    // Persist the grader preview snapshot onto the new certificate row.
+    // The COMMIT call below will overwrite grader_match_status + grader_verified_at
+    // and append the audit row, but writing here first guarantees the snapshot
+    // sticks even if the edge function call fails.
+    if (graderChoice !== "none" && graderCertNumber.trim()) {
+      const previewUpdate: Record<string, unknown> = {
+        grader: graderChoice,
+        grader_cert_number: graderCertNumber.trim(),
+      };
+      if (graderResult) {
+        previewUpdate.grader_grade = graderResult.grade;
+        previewUpdate.grader_grade_scale = graderResult.gradeScale;
+        previewUpdate.grader_report_url = graderResult.reportUrl;
+        previewUpdate.grader_images = graderResult.images ?? {};
+        previewUpdate.grader_card_snapshot = graderResult.snapshot ?? {};
+        previewUpdate.grader_match_status = graderResult.status;
+      }
+      const { error: graderUpdateErr } = await supabase
+        .from("certificates")
+        .update(previewUpdate)
+        .eq("id", result.id);
+      if (graderUpdateErr) {
+        console.error("Grader snapshot save failed:", graderUpdateErr);
+      }
+    }
 
     // Update certificate with physical attributes and identifiers
     const hasPhysicalData = Object.values(physicalAttributes).some(v => v);
