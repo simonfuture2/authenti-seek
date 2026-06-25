@@ -269,7 +269,16 @@ export function LandingPage() {
             transition={{ duration: 0.6 }}
           >
             <div className="flex justify-center mb-10">
-              <AuthentiSealMark size={180} state="verified" className="animate-pulse-glow rounded-full" />
+              <div className="relative">
+                <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full" aria-hidden />
+                <img
+                  src={coinSlabImage.url}
+                  alt="AuthentiSeal certified provenance coin hovering above a graded card slab"
+                  className="relative w-[320px] md:w-[440px] h-auto select-none pointer-events-none drop-shadow-2xl"
+                  loading="eager"
+                  decoding="async"
+                />
+              </div>
             </div>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8">
               <Shield className="h-4 w-4 text-primary" />
