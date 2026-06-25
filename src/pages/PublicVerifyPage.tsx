@@ -138,6 +138,15 @@ export function PublicVerifyPage() {
       solana_signature: cert.solana_signature || null,
       issuer_id: null,
       profiles: cert.issuer,
+      grader: cert.grader ?? null,
+      grader_cert_number: cert.grader_cert_number ?? null,
+      grader_grade: cert.grader_grade ?? null,
+      grader_grade_scale: cert.grader_grade_scale ?? null,
+      grader_report_url: cert.grader_report_url ?? null,
+      grader_images: cert.grader_images ?? null,
+      grader_match_status: cert.grader_match_status ?? "self_attested",
+      grader_verified_at: cert.grader_verified_at ?? null,
+      grader_card_snapshot: cert.grader_card_snapshot ?? null,
     } as PublicCertificate;
   };
 
