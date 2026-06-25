@@ -31,6 +31,7 @@ import { verifyCertificateOnChain, getExplorerUrl } from "@/lib/solana";
 import { useToast } from "@/hooks/use-toast";
 import { CollectAILink } from "@/components/ecosystem/CollectAILink";
 import { EcosystemBadge } from "@/components/ecosystem/EcosystemBadge";
+import { GraderTrustBadge } from "@/components/certificate/GraderTrustBadge";
 
 interface PublicCertificate {
   id: string;
@@ -47,6 +48,28 @@ interface PublicCertificate {
   profiles?: {
     display_name: string | null;
     company_name: string | null;
+  } | null;
+  // Grader verification (Phase 1)
+  grader: string | null;
+  grader_cert_number: string | null;
+  grader_grade: string | null;
+  grader_grade_scale: string | null;
+  grader_report_url: string | null;
+  grader_images: { front?: string | null; back?: string | null } | null;
+  grader_match_status:
+    | "grader_verified"
+    | "grader_linked"
+    | "self_attested"
+    | "mismatch"
+    | null;
+  grader_verified_at: string | null;
+  grader_card_snapshot: {
+    card?: {
+      subject?: string | null;
+      brand?: string | null;
+      year?: string | null;
+      cardNumber?: string | null;
+    } | null;
   } | null;
 }
 
@@ -116,6 +139,15 @@ export function PublicVerifyPage() {
       solana_signature: cert.solana_signature || null,
       issuer_id: null,
       profiles: cert.issuer,
+      grader: cert.grader ?? null,
+      grader_cert_number: cert.grader_cert_number ?? null,
+      grader_grade: cert.grader_grade ?? null,
+      grader_grade_scale: cert.grader_grade_scale ?? null,
+      grader_report_url: cert.grader_report_url ?? null,
+      grader_images: cert.grader_images ?? null,
+      grader_match_status: cert.grader_match_status ?? "self_attested",
+      grader_verified_at: cert.grader_verified_at ?? null,
+      grader_card_snapshot: cert.grader_card_snapshot ?? null,
     } as PublicCertificate;
   };
 
@@ -371,20 +403,35 @@ export function PublicVerifyPage() {
                     animate={{ opacity: 1, scale: 1 }}
                     className="space-y-4 mt-6"
                   >
-                    {/* Authentic Badge */}
-                    <div className="flex flex-col items-center justify-center py-4">
-                      <div className="h-20 w-20 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
-                        <CheckCircle2 className="h-12 w-12 text-green-500" />
-                      </div>
-                      <h3 className="font-bold text-xl text-green-500">Authentic Product</h3>
-                      <p className="text-muted-foreground text-sm mt-1">
-                        This certificate is verified
-                      </p>
+                    {/* Grader trust badge (replaces single "Authentic Product" claim) */}
+                    <GraderTrustBadge
+                      status={certificate.grader_match_status}
+                      grader={certificate.grader}
+                      graderCertNumber={certificate.grader_cert_number}
+                      graderGrade={certificate.grader_grade}
+                      graderGradeScale={certificate.grader_grade_scale}
+                      graderReportUrl={certificate.grader_report_url}
+                      graderImages={certificate.grader_images}
+                      graderVerifiedAt={certificate.grader_verified_at}
+                      graderCardSnapshot={certificate.grader_card_snapshot}
+                      sealed={{
+                        product_name: certificate.product_name,
+                        category: certificate.product_category,
+                        serial_number: certificate.serial_number,
+                      }}
+                      sealedImages={certificate.product_images}
+                      onScrollToSeller={() => {
+                        document
+                          .getElementById("sealed-by-block")
+                          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                      }}
+                    />
+
+                    <div className="flex items-center justify-center pt-1">
                       <Badge
                         variant={certificate.status === "active" ? "default" : "secondary"}
-                        className="mt-3"
                       >
-                        {certificate.status.toUpperCase()}
+                        Status: {certificate.status.toUpperCase()}
                       </Badge>
                     </div>
 
@@ -452,7 +499,7 @@ export function PublicVerifyPage() {
                           </div>
                         </div>
 
-                        <div className="flex items-start gap-3">
+                        <div id="sealed-by-block" className="flex items-start gap-3 scroll-mt-24">
                           {certificate.profiles?.company_name ? (
                             <Building2 className="h-5 w-5 text-muted-foreground mt-0.5" />
                           ) : (

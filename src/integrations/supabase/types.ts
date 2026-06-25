@@ -813,6 +813,15 @@ export type Database = {
       certificates_public: {
         Row: {
           created_at: string | null
+          grader: string | null
+          grader_card_snapshot: Json | null
+          grader_cert_number: string | null
+          grader_grade: string | null
+          grader_grade_scale: string | null
+          grader_images: Json | null
+          grader_match_status: string | null
+          grader_report_url: string | null
+          grader_verified_at: string | null
           id: string | null
           issued_at: string | null
           issuer_id: string | null
@@ -832,6 +841,15 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          grader?: string | null
+          grader_card_snapshot?: Json | null
+          grader_cert_number?: string | null
+          grader_grade?: string | null
+          grader_grade_scale?: string | null
+          grader_images?: Json | null
+          grader_match_status?: string | null
+          grader_report_url?: string | null
+          grader_verified_at?: string | null
           id?: string | null
           issued_at?: string | null
           issuer_id?: string | null
@@ -851,6 +869,15 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          grader?: string | null
+          grader_card_snapshot?: Json | null
+          grader_cert_number?: string | null
+          grader_grade?: string | null
+          grader_grade_scale?: string | null
+          grader_images?: Json | null
+          grader_match_status?: string | null
+          grader_report_url?: string | null
+          grader_verified_at?: string | null
           id?: string | null
           issued_at?: string | null
           issuer_id?: string | null
