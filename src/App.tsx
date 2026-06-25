@@ -76,16 +76,22 @@ function AppRoutes() {
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
 
       {/* Collector dashboard (single authenticated tier) */}
-      <Route path="/issuer/create" element={<ProtectedRoute><CreateCOAPage /></ProtectedRoute>} />
-      <Route path="/issuer/certificates" element={<ProtectedRoute><CertificatesPage /></ProtectedRoute>} />
-      <Route path="/issuer/transfer" element={<ProtectedRoute><TransferCOAPage /></ProtectedRoute>} />
-      <Route path="/issuer/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+      <Route path="/collection" element={<ProtectedRoute><CertificatesPage /></ProtectedRoute>} />
+      <Route path="/seal" element={<ProtectedRoute><CreateCOAPage /></ProtectedRoute>} />
+      <Route path="/transfer" element={<ProtectedRoute><TransferCOAPage /></ProtectedRoute>} />
+      <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+      <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
+      <Route path="/report" element={<ProtectedRoute><ReportFakePage /></ProtectedRoute>} />
 
-      {/* Scan & Search are public — these auth-only mirrors are kept as shortcuts. */}
-      <Route path="/verifier/scan" element={<ProtectedRoute><ScanQRPage /></ProtectedRoute>} />
-      <Route path="/verifier/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
-      <Route path="/verifier/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
-      <Route path="/verifier/report" element={<ProtectedRoute><ReportFakePage /></ProtectedRoute>} />
+      {/* Legacy path redirects */}
+      <Route path="/issuer/create" element={<Navigate to="/seal" replace />} />
+      <Route path="/issuer/certificates" element={<Navigate to="/collection" replace />} />
+      <Route path="/issuer/transfer" element={<Navigate to="/transfer" replace />} />
+      <Route path="/issuer/analytics" element={<Navigate to="/analytics" replace />} />
+      <Route path="/verifier/scan" element={<Navigate to="/verify" replace />} />
+      <Route path="/verifier/search" element={<Navigate to="/verify" replace />} />
+      <Route path="/verifier/history" element={<Navigate to="/history" replace />} />
+      <Route path="/verifier/report" element={<Navigate to="/report" replace />} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
