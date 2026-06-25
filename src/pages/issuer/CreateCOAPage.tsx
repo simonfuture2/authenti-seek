@@ -144,7 +144,7 @@ export function CreateCOAPage() {
   const [graderChoice, setGraderChoice] = useState<GraderChoice>("none");
   const [graderCertNumber, setGraderCertNumber] = useState("");
   const [graderStatus, setGraderStatus] = useState<GraderMatchStatus | null>("self_attested");
-  const [, setGraderResult] = useState<GraderVerifyResult | null>(null);
+  const [graderResult, setGraderResult] = useState<GraderVerifyResult | null>(null);
   const { verify: commitGraderVerification } = useGraderVerification();
 
   const { createCertificate } = useCertificates();
