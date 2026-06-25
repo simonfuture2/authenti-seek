@@ -23,15 +23,15 @@ export const ECOSYSTEM_APPS = {
   collectai: {
     name: "CollectAI",
     tagline: "AI-Powered Card Grading",
-    url: "https://collectai.lovable.app",
+    url: "https://mycollectai.com",
     gradeUrl: (cardId?: string) =>
       cardId
-        ? `https://collectai.lovable.app/grade?ref=authentiseal&card=${encodeURIComponent(cardId)}`
-        : `https://collectai.lovable.app/grade?ref=authentiseal`,
+        ? `https://mycollectai.com/grade?ref=authentiseal&card=${encodeURIComponent(cardId)}`
+        : `https://mycollectai.com/grade?ref=authentiseal`,
     marketUrl: (query?: string) =>
       query
-        ? `https://collectai.lovable.app/market?q=${encodeURIComponent(query)}`
-        : `https://collectai.lovable.app/market`,
+        ? `https://mycollectai.com/market?q=${encodeURIComponent(query)}`
+        : `https://mycollectai.com/market`,
     identifyApiUrl:
       "https://irncxwszrawrndsdaqel.supabase.co/functions/v1/collectai-identify",
   },
