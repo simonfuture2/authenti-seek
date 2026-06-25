@@ -192,11 +192,11 @@ export function IssuerProfilePage() {
   const getLevelColor = (level: TrustMetrics["level"]) => {
     switch (level) {
       case "Premium":
-        return "text-amber-500";
+        return "text-primary";
       case "Trusted":
-        return "text-green-500";
+        return "text-success";
       case "Verified":
-        return "text-blue-500";
+        return "text-secondary";
       default:
         return "text-muted-foreground";
     }

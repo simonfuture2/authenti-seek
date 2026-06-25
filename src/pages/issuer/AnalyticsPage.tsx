@@ -37,7 +37,7 @@ import { useIssuerAnalytics } from "@/hooks/useAnalytics";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 
-const COLORS = ["hsl(280, 100%, 65%)", "hsl(174, 100%, 42%)", "hsl(38, 92%, 50%)", "hsl(142, 76%, 45%)"];
+const COLORS = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--warning))", "hsl(var(--success))"];
 
 export function AnalyticsPage() {
   const { data: analytics, isLoading } = useIssuerAnalytics();
@@ -152,32 +152,33 @@ export function AnalyticsPage() {
                     <AreaChart data={analytics.verificationsOverTime}>
                       <defs>
                         <linearGradient id="colorVerifications" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(280, 100%, 65%)" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="hsl(280, 100%, 65%)" stopOpacity={0} />
+                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(240, 10%, 15%)" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis
                         dataKey="date"
-                        stroke="hsl(240, 5%, 55%)"
+                        stroke="hsl(var(--muted-foreground))"
                         fontSize={12}
                         tickFormatter={(value) => {
                           const date = new Date(value);
                           return `${date.getMonth() + 1}/${date.getDate()}`;
                         }}
                       />
-                      <YAxis stroke="hsl(240, 5%, 55%)" fontSize={12} />
+                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: "hsl(240, 10%, 8%)",
-                          border: "1px solid hsl(240, 10%, 15%)",
+                          backgroundColor: "hsl(var(--popover))",
+                          border: "1px solid hsl(var(--border))",
                           borderRadius: "8px",
+                          color: "hsl(var(--popover-foreground))",
                         }}
                       />
                       <Area
                         type="monotone"
                         dataKey="count"
-                        stroke="hsl(280, 100%, 65%)"
+                        stroke="hsl(var(--primary))"
                         fillOpacity={1}
                         fill="url(#colorVerifications)"
                       />
@@ -215,7 +216,7 @@ export function AnalyticsPage() {
                         cy="50%"
                         innerRadius={60}
                         outerRadius={100}
-                        fill="#8884d8"
+                        fill="hsl(var(--primary))"
                         paddingAngle={5}
                         dataKey="count"
                         nameKey="category"
@@ -231,9 +232,10 @@ export function AnalyticsPage() {
                       </Pie>
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: "hsl(240, 10%, 8%)",
-                          border: "1px solid hsl(240, 10%, 15%)",
+                          backgroundColor: "hsl(var(--popover))",
+                          border: "1px solid hsl(var(--border))",
                           borderRadius: "8px",
+                          color: "hsl(var(--popover-foreground))",
                         }}
                       />
                     </PieChart>
@@ -327,7 +329,7 @@ export function AnalyticsPage() {
                             : index === 1 
                             ? "bg-muted text-muted-foreground" 
                             : index === 2 
-                            ? "bg-orange-500/20 text-orange-400" 
+                            ? "bg-secondary/20 text-secondary" 
                             : "bg-muted/50 text-muted-foreground"
                         }`}>
                           {index + 1}

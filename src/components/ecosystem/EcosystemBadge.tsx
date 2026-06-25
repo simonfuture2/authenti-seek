@@ -23,8 +23,8 @@ export function EcosystemBadge({ app, variant = "inline", className = "" }: Ecos
         {app === "authentiseal" ? (
           <img src={authentisealIcon} alt="AuthentiSeal" className="h-8 w-8 rounded-lg" />
         ) : (
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
-            <Sparkles className="h-4 w-4 text-white" />
+          <div className="h-8 w-8 rounded-lg bg-[hsl(var(--collectai-purple))] flex items-center justify-center">
+            <Sparkles className="h-4 w-4 text-primary-foreground" />
           </div>
         )}
         <div className="flex-1 min-w-0">
@@ -49,7 +49,7 @@ export function EcosystemBadge({ app, variant = "inline", className = "" }: Ecos
       {app === "authentiseal" ? (
         <Shield className="h-3 w-3 text-primary" />
       ) : (
-        <Sparkles className="h-3 w-3 text-violet-500" />
+        <Sparkles className="h-3 w-3 text-[hsl(var(--collectai-purple))]" />
       )}
       <span className="text-muted-foreground">
         {app === "authentiseal" ? "Powered by" : "Grade with"}{" "}

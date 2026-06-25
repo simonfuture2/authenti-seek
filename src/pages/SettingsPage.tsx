@@ -29,9 +29,9 @@ import { useTheme, ThemeMode } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
 
 const themeOptions: { value: ThemeMode; label: string; icon: React.ElementType; description: string; preview: string }[] = [
-  { value: "light", label: "Light", icon: Sun, description: "Clean, bright interface for everyday use", preview: "bg-white border-gray-200" },
-  { value: "dark", label: "Dark", icon: Moon, description: "Deep purple Solana-inspired dark theme", preview: "bg-[#0a0a14] border-purple-500/30" },
-  { value: "seeker", label: "Solana Seeker", icon: Smartphone, description: "Inspired by the Solana Seeker phone", preview: "bg-[#0a1410] border-emerald-500/30" },
+  { value: "light", label: "Light", icon: Sun, description: "Clean, bright interface for everyday use", preview: "bg-background border-border" },
+  { value: "dark", label: "Dark", icon: Moon, description: "Deep, gold-accented dark theme", preview: "bg-background border-primary/30" },
+  { value: "seeker", label: "Solana Seeker", icon: Smartphone, description: "Inspired by the Solana Seeker phone", preview: "bg-background border-primary/30" },
 ];
 
 function AppearanceSettings() {
