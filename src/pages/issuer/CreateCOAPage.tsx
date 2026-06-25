@@ -144,7 +144,7 @@ export function CreateCOAPage() {
   const [graderChoice, setGraderChoice] = useState<GraderChoice>("none");
   const [graderCertNumber, setGraderCertNumber] = useState("");
   const [graderStatus, setGraderStatus] = useState<GraderMatchStatus | null>("self_attested");
-  const [, setGraderResult] = useState<GraderVerifyResult | null>(null);
+  const [graderResult, setGraderResult] = useState<GraderVerifyResult | null>(null);
   const { verify: commitGraderVerification } = useGraderVerification();
 
   const { createCertificate } = useCertificates();
@@ -348,6 +348,17 @@ export function CreateCOAPage() {
   };
 
   const onSubmit = async (data: CreateCertificateForm) => {
+    // Hard guard: never seal while the grader cross-check is in mismatch.
+    if (graderStatus === "mismatch") {
+      toast({
+        title: "Cannot seal — grader mismatch",
+        description:
+          "The grading company's record describes a different card. Resolve or report before sealing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Create certificate in database first
     const result = await createCertificate.mutateAsync({
       serial_number: data.serial_number,
@@ -362,6 +373,33 @@ export function CreateCOAPage() {
         authenticityScore: authenticityScore,
       },
     });
+
+    // Persist the grader preview snapshot onto the new certificate row.
+    // The COMMIT call below will overwrite grader_match_status + grader_verified_at
+    // and append the audit row, but writing here first guarantees the snapshot
+    // sticks even if the edge function call fails.
+    if (graderChoice !== "none" && graderCertNumber.trim()) {
+      const { error: graderUpdateErr } = await supabase
+        .from("certificates")
+        .update({
+          grader: graderChoice,
+          grader_cert_number: graderCertNumber.trim(),
+          ...(graderResult
+            ? {
+                grader_grade: graderResult.grade ?? null,
+                grader_grade_scale: graderResult.gradeScale ?? null,
+                grader_report_url: graderResult.reportUrl,
+                grader_images: (graderResult.images ?? {}) as never,
+                grader_card_snapshot: (graderResult.snapshot ?? {}) as never,
+                grader_match_status: graderResult.status,
+              }
+            : {}),
+        })
+        .eq("id", result.id);
+      if (graderUpdateErr) {
+        console.error("Grader snapshot save failed:", graderUpdateErr);
+      }
+    }
 
     // Update certificate with physical attributes and identifiers
     const hasPhysicalData = Object.values(physicalAttributes).some(v => v);
