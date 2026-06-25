@@ -75,6 +75,15 @@ import { PhysicalAttributesForm } from "@/components/issuer/PhysicalAttributesFo
 import { UniqueIdentifiersForm } from "@/components/issuer/UniqueIdentifiersForm";
 import { useCollectAIIdentify, CollectAIResult } from "@/hooks/useCollectAIIdentify";
 import { CollectAIIdentifyButton } from "@/components/ecosystem/CollectAIIdentifyButton";
+import {
+  GraderCertStep,
+  type GraderChoice,
+} from "@/components/certificate/GraderCertStep";
+import {
+  useGraderVerification,
+  type GraderMatchStatus,
+  type GraderVerifyResult,
+} from "@/hooks/useGraderVerification";
 
 const createCertificateSchema = z.object({
   serial_number: z.string().min(3, "Serial number must be at least 3 characters").max(50),
