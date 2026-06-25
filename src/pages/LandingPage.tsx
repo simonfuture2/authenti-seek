@@ -150,9 +150,9 @@ const faqs = [
       "AuthentiSeal can certify any physical product including luxury goods, art, collectibles, electronics, watches, sneakers, and more. You provide the product details, and we create the verifiable certificate.",
   },
   {
-    question: "How do verifiers authenticate products?",
+    question: "How does verification work?",
     answer:
-      "Verifiers can scan the QR code on a product or search by serial number. Our AI-powered verification compares photos against the original certificate to detect counterfeits.",
+      "Verification is public — anyone can scan a card's QR code or search by serial number at /verify, no account required. Our AI-powered check compares photos against the original sealed certificate to detect counterfeits.",
   },
   {
     question: "Is my data secure?",
