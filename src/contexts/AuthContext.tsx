@@ -3,12 +3,12 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { logError } from "@/lib/errorHandler";
 
-type UserRole = "collector" | "issuer" | "verifier" | null;
+type UserRole = "collector";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  role: UserRole;
+  role: UserRole | null;
   isCollector: boolean;
   loading: boolean;
   signUp: (email: string, password: string, displayName?: string, companyName?: string) => Promise<{ error: Error | null }>;
@@ -21,55 +21,21 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [role, setRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
-
-  const fetchUserRole = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (error) {
-      logError(error, "AuthContext.fetchUserRole");
-      return null;
-    }
-
-    return (data?.role as UserRole) ?? null;
-  };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-
-        if (session?.user) {
-          setTimeout(async () => {
-            const userRole = await fetchUserRole(session.user.id);
-            setRole(userRole);
-            setLoading(false);
-          }, 0);
-        } else {
-          setRole(null);
-          setLoading(false);
-        }
+        setLoading(false);
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-
-      if (session?.user) {
-        fetchUserRole(session.user.id).then((userRole) => {
-          setRole(userRole);
-          setLoading(false);
-        });
-      } else {
-        setLoading(false);
-      }
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -93,12 +59,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
 
       if (data.user) {
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .insert({ user_id: data.user.id, role: "collector" });
-
-        if (roleError) throw roleError;
-
         const { error: profileError } = await supabase
           .from("profiles")
           .update({
@@ -110,8 +70,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (profileError) {
           logError(profileError, "AuthContext.signUp.profileUpdate");
         }
-
-        setRole("collector");
       }
 
       return { error: null };
@@ -139,10 +97,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
-    setRole(null);
   };
 
-  const isCollector = role === "collector" || role === "issuer" || role === "verifier";
+  const role: UserRole | null = user ? "collector" : null;
+  const isCollector = !!user;
 
   return (
     <AuthContext.Provider
