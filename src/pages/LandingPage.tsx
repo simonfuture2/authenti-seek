@@ -278,14 +278,14 @@ export function LandingPage() {
             </h1>
 
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Issue, verify, and track authentic products on the blockchain.
+              Seal, verify, and track authentic graded cards on the blockchain.
               Tamper-proof certificates powered by Solana's lightning-fast network.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/auth">
                 <Button size="lg" className="bg-solana-gradient hover:opacity-90 w-full sm:w-auto">
-                  Start Issuing Certificates
+                  Start Sealing Your Collection
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
