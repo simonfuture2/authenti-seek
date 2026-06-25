@@ -182,10 +182,10 @@ export function IssuerDashboardLayout({ children }: DashboardLayoutProps) {
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav
         items={[
-          { icon: PlusCircle, label: "Create", path: "/issuer/create" },
-          { icon: FileImage, label: "Certs", path: "/issuer/certificates" },
-          { icon: Send, label: "Transfer", path: "/issuer/transfer" },
-          { icon: BarChart3, label: "Analytics", path: "/issuer/analytics" },
+          { icon: FileImage, label: "Collection", path: "/collection" },
+          { icon: PlusCircle, label: "Seal", path: "/seal" },
+          { icon: Send, label: "Transfer", path: "/transfer" },
+          { icon: QrCode, label: "Verify", path: "/verify" },
         ]}
       />
     </div>
