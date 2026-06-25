@@ -1005,6 +1005,30 @@ export function CreateCOAPage() {
                       </div>
                     )}
 
+                    {/* Grading Certificate Step */}
+                    <GraderCertStep
+                      grader={graderChoice}
+                      certNumber={graderCertNumber}
+                      onGraderChange={setGraderChoice}
+                      onCertNumberChange={setGraderCertNumber}
+                      productName={watchedProductName ?? ""}
+                      collectAiCard={
+                        collectAIResult
+                          ? {
+                              subject: collectAIResult.name ?? null,
+                              brand: collectAIResult.brand ?? null,
+                              year: collectAIResult.year ?? null,
+                              cardNumber: null,
+                            }
+                          : null
+                      }
+                      onStatusChange={(status, result) => {
+                        setGraderStatus(status);
+                        setGraderResult(result);
+                      }}
+                      disabled={createCertificate.isPending}
+                    />
+
                     {/* On-Chain Storage Toggle */}
                     <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-border">
                       <div className="flex items-center gap-3">
