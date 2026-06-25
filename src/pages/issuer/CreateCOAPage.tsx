@@ -75,6 +75,15 @@ import { PhysicalAttributesForm } from "@/components/issuer/PhysicalAttributesFo
 import { UniqueIdentifiersForm } from "@/components/issuer/UniqueIdentifiersForm";
 import { useCollectAIIdentify, CollectAIResult } from "@/hooks/useCollectAIIdentify";
 import { CollectAIIdentifyButton } from "@/components/ecosystem/CollectAIIdentifyButton";
+import {
+  GraderCertStep,
+  type GraderChoice,
+} from "@/components/certificate/GraderCertStep";
+import {
+  useGraderVerification,
+  type GraderMatchStatus,
+  type GraderVerifyResult,
+} from "@/hooks/useGraderVerification";
 
 const createCertificateSchema = z.object({
   serial_number: z.string().min(3, "Serial number must be at least 3 characters").max(50),
@@ -130,6 +139,13 @@ export function CreateCOAPage() {
   
   // Minting mode selection
   const [mintingMode, setMintingMode] = useState<MintingMode>("nft");
+
+  // Grader cert verification (Phase 1)
+  const [graderChoice, setGraderChoice] = useState<GraderChoice>("none");
+  const [graderCertNumber, setGraderCertNumber] = useState("");
+  const [graderStatus, setGraderStatus] = useState<GraderMatchStatus | null>("self_attested");
+  const [, setGraderResult] = useState<GraderVerifyResult | null>(null);
+  const { verify: commitGraderVerification } = useGraderVerification();
 
   const { createCertificate } = useCertificates();
   const { mintCertificate, isSubmitting: isMinting } = useNFTMinting();
@@ -416,6 +432,33 @@ export function CreateCOAPage() {
     }
 
     setCreatedCert(result);
+
+    // Commit grader verification to the new certificate (Phase 1).
+    if (graderChoice !== "none" && graderCertNumber.trim()) {
+      try {
+        await commitGraderVerification({
+          grader: graderChoice,
+          certNumber: graderCertNumber.trim(),
+          certificateId: result.id,
+          sealedCard: { product_name: data.product_name },
+          collectAiCard: collectAIResult
+            ? {
+                subject: collectAIResult.name ?? null,
+                brand: collectAIResult.brand ?? null,
+                year: collectAIResult.year ?? null,
+                cardNumber: null,
+              }
+            : null,
+        });
+      } catch (err) {
+        console.error("Grader commit failed:", err);
+        toast({
+          title: "Grader record not saved",
+          description: "Certificate created, but the grader cross-check couldn't be saved.",
+          variant: "destructive",
+        });
+      }
+    }
 
     // Fire CollectAI callback if this was a CollectAI referral
     if (collectAICallbackUrl && collectAICardId) {
@@ -962,6 +1005,30 @@ export function CreateCOAPage() {
                       </div>
                     )}
 
+                    {/* Grading Certificate Step */}
+                    <GraderCertStep
+                      grader={graderChoice}
+                      certNumber={graderCertNumber}
+                      onGraderChange={setGraderChoice}
+                      onCertNumberChange={setGraderCertNumber}
+                      productName={watchedProductName ?? ""}
+                      collectAiCard={
+                        collectAIResult
+                          ? {
+                              subject: collectAIResult.name ?? null,
+                              brand: collectAIResult.brand ?? null,
+                              year: collectAIResult.year ?? null,
+                              cardNumber: null,
+                            }
+                          : null
+                      }
+                      onStatusChange={(status, result) => {
+                        setGraderStatus(status);
+                        setGraderResult(result);
+                      }}
+                      disabled={createCertificate.isPending}
+                    />
+
                     {/* On-Chain Storage Toggle */}
                     <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-border">
                       <div className="flex items-center gap-3">
@@ -1012,13 +1079,22 @@ export function CreateCOAPage() {
                     <Button
                       type="submit"
                       className="w-full bg-solana-gradient hover:opacity-90"
-                      disabled={createCertificate.isPending || isSubmitting || isMinting || uploading || uploadingCertImage}
+                      disabled={
+                        createCertificate.isPending ||
+                        isSubmitting ||
+                        isMinting ||
+                        uploading ||
+                        uploadingCertImage ||
+                        graderStatus === "mismatch"
+                      }
                     >
                       {createCertificate.isPending || isSubmitting || isMinting || uploadingCertImage ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                           {uploadingCertImage ? "Uploading Certificate..." : (isSubmitting || isMinting) ? "Storing On-Chain..." : "Creating..."}
                         </>
+                      ) : graderStatus === "mismatch" ? (
+                        <>⚠ Resolve grader mismatch to seal</>
                       ) : (
                         <>
                           Create Certificate
