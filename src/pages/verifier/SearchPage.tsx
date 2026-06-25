@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logError } from "@/lib/errorHandler";
 import { toast } from "sonner";
 import { VerificationFlow } from "@/components/verification/VerificationFlow";
+import { AuthentiSealMark } from "@/components/branding/AuthentiSealMark";
 
 // 72 hours in milliseconds
 const CHAIN_PENDING_TIMEOUT_MS = 72 * 60 * 60 * 1000;

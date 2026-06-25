@@ -4,6 +4,7 @@ import { Check, Shield, Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { SealStyle, SEAL_STYLES } from "./CertificateThemes";
+import coinDuoImage from "@/assets/authentiseal-coin-duo.png.asset.json";
 
 interface SealSelectorProps {
   selectedSeal: SealStyle;
@@ -109,6 +110,21 @@ export function SealSelector({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Brand reference banner */}
+      <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 via-secondary/5 to-primary/5">
+        <img
+          src={coinDuoImage.url}
+          alt="AuthentiSeal coin — front face and slab-mounted"
+          className="w-full h-24 object-cover object-center opacity-90"
+          loading="lazy"
+          decoding="async"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent pointer-events-none" />
+        <div className="absolute bottom-2 left-3 text-[10px] uppercase tracking-widest text-foreground/80 font-medium">
+          Each seal mints a verifiable on-chain coin
+        </div>
+      </div>
 
       {/* Preset Seal Options */}
       <div className="grid grid-cols-3 gap-3">
