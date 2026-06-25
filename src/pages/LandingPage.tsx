@@ -268,22 +268,22 @@ export function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <div className="flex justify-center mb-8">
-              <AuthentiSealMark size={140} state="verified" className="animate-pulse-glow rounded-full" />
+            <div className="flex justify-center mb-10">
+              <AuthentiSealMark size={180} state="verified" className="animate-pulse-glow rounded-full" />
             </div>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8">
-              <Zap className="h-4 w-4 text-primary" />
-              <span className="text-sm text-primary">Powered by Solana</span>
+              <Shield className="h-4 w-4 text-primary" />
+              <span className="text-sm text-primary">Collector fraud-shield</span>
             </div>
 
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-              Blockchain-Verified
-              <span className="block gradient-text">Certificates of Authenticity</span>
+              Know it's real
+              <span className="block gradient-text">before you buy.</span>
             </h1>
 
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Seal, verify, and track authentic graded cards on the blockchain.
-              Tamper-proof certificates powered by Solana's lightning-fast network.
+            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
+              Verified against <span className="text-foreground font-semibold">PSA, TAG, Beckett</span> and more,
+              with provenance that travels with the card &mdash; sealed on-chain, not on paper.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
