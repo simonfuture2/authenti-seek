@@ -433,6 +433,33 @@ export function CreateCOAPage() {
 
     setCreatedCert(result);
 
+    // Commit grader verification to the new certificate (Phase 1).
+    if (graderChoice !== "none" && graderCertNumber.trim()) {
+      try {
+        await commitGraderVerification({
+          grader: graderChoice,
+          certNumber: graderCertNumber.trim(),
+          certificateId: result.id,
+          sealedCard: { product_name: data.product_name },
+          collectAiCard: collectAIResult
+            ? {
+                subject: collectAIResult.name ?? null,
+                brand: collectAIResult.brand ?? null,
+                year: collectAIResult.year ?? null,
+                cardNumber: null,
+              }
+            : null,
+        });
+      } catch (err) {
+        console.error("Grader commit failed:", err);
+        toast({
+          title: "Grader record not saved",
+          description: "Certificate created, but the grader cross-check couldn't be saved.",
+          variant: "destructive",
+        });
+      }
+    }
+
     // Fire CollectAI callback if this was a CollectAI referral
     if (collectAICallbackUrl && collectAICardId) {
       try {
