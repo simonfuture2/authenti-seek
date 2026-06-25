@@ -86,7 +86,6 @@ function AppearanceSettings() {
 
 export function SettingsPage() {
   const navigate = useNavigate();
-  const { role } = useAuth();
   const { profile, isLoading, updateProfile } = useProfile();
   const { toast } = useToast();
   
@@ -94,7 +93,6 @@ export function SettingsPage() {
   const [companyName, setCompanyName] = useState(profile?.company_name || "");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Update form when profile loads
   React.useEffect(() => {
     if (profile) {
       setDisplayName(profile.display_name || "");
@@ -110,18 +108,14 @@ export function SettingsPage() {
         company_name: companyName,
       });
     } catch (error) {
-      // Error is handled by the mutation
+      // handled by mutation
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleBack = () => {
-    if (role === "issuer") {
-      navigate("/issuer/create");
-    } else {
-      navigate("/verifier/scan");
-    }
+    navigate("/issuer/create");
   };
 
   if (isLoading) {
@@ -272,15 +266,13 @@ export function SettingsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-3">
-                    <div className={`p-3 rounded-lg ${role === "issuer" ? "bg-primary/10" : "bg-secondary/10"}`}>
-                      <Shield className={`h-6 w-6 ${role === "issuer" ? "text-primary" : "text-secondary"}`} />
+                    <div className="p-3 rounded-lg bg-primary/10">
+                      <Shield className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium capitalize">{role}</p>
+                      <p className="font-medium">Collector</p>
                       <p className="text-sm text-muted-foreground">
-                        {role === "issuer"
-                          ? "Create and manage certificates of authenticity"
-                          : "Verify and authenticate products"}
+                        Seal graded cards and manage your certificates. Verification is public — anyone can check a card without an account.
                       </p>
                     </div>
                   </div>
