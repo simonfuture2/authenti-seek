@@ -35,9 +35,9 @@ import { EcosystemBadge } from "@/components/ecosystem/EcosystemBadge";
 const features = [
   {
     icon: FileCheck,
-    title: "Issue Certificates",
+    title: "Seal Your Cards",
     description:
-      "Create tamper-proof digital certificates of authenticity for your products in seconds.",
+      "Create tamper-proof digital certificates for your graded cards and collectibles in seconds.",
   },
   {
     icon: QrCode,
