@@ -4,6 +4,7 @@ import { Check, Shield, Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { SealStyle, SEAL_STYLES } from "./CertificateThemes";
+import coinDuoImage from "@/assets/authentiseal-coin-duo.png.asset.json";
 
 interface SealSelectorProps {
   selectedSeal: SealStyle;
