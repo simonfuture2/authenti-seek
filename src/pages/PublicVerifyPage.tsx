@@ -48,6 +48,28 @@ interface PublicCertificate {
     display_name: string | null;
     company_name: string | null;
   } | null;
+  // Grader verification (Phase 1)
+  grader: string | null;
+  grader_cert_number: string | null;
+  grader_grade: string | null;
+  grader_grade_scale: string | null;
+  grader_report_url: string | null;
+  grader_images: { front?: string | null; back?: string | null } | null;
+  grader_match_status:
+    | "grader_verified"
+    | "grader_linked"
+    | "self_attested"
+    | "mismatch"
+    | null;
+  grader_verified_at: string | null;
+  grader_card_snapshot: {
+    card?: {
+      subject?: string | null;
+      brand?: string | null;
+      year?: string | null;
+      cardNumber?: string | null;
+    } | null;
+  } | null;
 }
 
 interface OnChainResult {
