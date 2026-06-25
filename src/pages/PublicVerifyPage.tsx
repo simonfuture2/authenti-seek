@@ -292,6 +292,9 @@ export function PublicVerifyPage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-8"
           >
+            <div className="flex justify-center mb-6">
+              <AuthentiSealMark size={120} state="verified" />
+            </div>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
               <Shield className="h-4 w-4 text-primary" />
               <span className="text-sm text-primary">Public Verification</span>
