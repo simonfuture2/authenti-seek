@@ -499,7 +499,7 @@ export function PublicVerifyPage() {
                           </div>
                         </div>
 
-                        <div className="flex items-start gap-3">
+                        <div id="sealed-by-block" className="flex items-start gap-3 scroll-mt-24">
                           {certificate.profiles?.company_name ? (
                             <Building2 className="h-5 w-5 text-muted-foreground mt-0.5" />
                           ) : (
