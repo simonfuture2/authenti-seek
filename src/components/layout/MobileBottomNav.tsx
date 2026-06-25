@@ -36,7 +36,7 @@ export function MobileBottomNav({ items }: MobileBottomNavProps) {
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <item.icon className={cn("h-5 w-5", isActive && "drop-shadow-[0_0_6px_hsl(280,100%,65%)]")} />
+              <item.icon className={cn("h-5 w-5", isActive && "drop-shadow-[0_0_6px_hsl(var(--primary))]")} />
               <span className={cn("text-[10px] font-medium leading-none", isActive && "text-primary")}>
                 {item.label}
               </span>
