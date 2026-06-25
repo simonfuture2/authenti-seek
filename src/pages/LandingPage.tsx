@@ -423,7 +423,7 @@ export function LandingPage() {
                 <FileCheck className="h-5 w-5 text-primary" />
               </div>
               <div className="text-3xl md:text-4xl font-bold gradient-text">{platformStats?.totalCertificates ?? "—"}+</div>
-              <p className="text-xs md:text-sm text-muted-foreground mt-1">Certificates Issued</p>
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">Cards Sealed</p>
             </div>
             <div className="glass-card p-6 rounded-xl text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
@@ -444,7 +444,7 @@ export function LandingPage() {
                 <Users className="h-5 w-5 text-primary" />
               </div>
               <div className="text-3xl md:text-4xl font-bold gradient-text">{platformStats?.activeIssuers ?? "—"}</div>
-              <p className="text-xs md:text-sm text-muted-foreground mt-1">Active Issuers</p>
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">Active Collectors</p>
             </div>
           </motion.div>
 
