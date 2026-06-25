@@ -1,0 +1,27 @@
+{
+  "name": "AuthentiSeal — Verified Provenance",
+  "short_name": "AuthentiSeal",
+  "description": "Know it's real before you buy. Verified against PSA, TAG, Beckett and more, with provenance that travels with the card.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0a0a0a",
+  "background_color": "#0a0a0a",
+  "categories": ["finance", "utilities", "shopping"],
+  "icons": [
+    {
+      "src": "/dapp-store/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/dapp-store/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

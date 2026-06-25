@@ -512,8 +512,8 @@ export default function CertificatesPage() {
             animate={{ opacity: 1 }}
             className="text-center py-16"
           >
-            <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-              <ImageIcon className="h-8 w-8 text-muted-foreground" />
+            <div className="mx-auto mb-6 opacity-70">
+              <AuthentiSealMark size={96} state="attested" />
             </div>
             <h3 className="text-lg font-medium mb-2">No certificates found</h3>
             <p className="text-muted-foreground text-sm">

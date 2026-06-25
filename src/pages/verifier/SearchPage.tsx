@@ -400,8 +400,10 @@ export function SearchPage() {
             </div>
           ) : !query ? (
             <div className="text-center py-12 text-muted-foreground">
-              <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Enter a search term to find certificates</p>
+              <div className="mx-auto mb-4 opacity-80">
+                <AuthentiSealMark size={88} state="verified" />
+              </div>
+              <p>Enter a serial or cert number to verify provenance</p>
             </div>
           ) : null}
 
