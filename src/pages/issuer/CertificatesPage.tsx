@@ -377,12 +377,12 @@ export default function CertificatesPage() {
           animate={{ opacity: 1, y: 0 }}
         >
           <h1 className="text-2xl md:text-3xl font-bold mb-2">
-            {isLPView ? "LP Certificates" : "My Certificates"}
+            {isLPView ? "LP Certificates" : "My Collection"}
           </h1>
           <p className="text-muted-foreground">
             {isLPView
               ? "Certificates with Asset LP liquidity backing"
-              : "View and manage all certificates you've issued"}
+              : "View and manage all the cards you've sealed"}
           </p>
         </motion.div>
 
@@ -731,7 +731,7 @@ export default function CertificatesPage() {
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">
-                          A verifier has flagged this certificate for on-chain storage. 
+                          This certificate has been flagged for on-chain storage.
                           You must store it on the blockchain within the deadline to maintain validity.
                         </p>
                         <div className="flex items-center gap-2">

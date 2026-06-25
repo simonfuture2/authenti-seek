@@ -35,9 +35,9 @@ import { EcosystemBadge } from "@/components/ecosystem/EcosystemBadge";
 const features = [
   {
     icon: FileCheck,
-    title: "Issue Certificates",
+    title: "Seal Your Cards",
     description:
-      "Create tamper-proof digital certificates of authenticity for your products in seconds.",
+      "Create tamper-proof digital certificates for your graded cards and collectibles in seconds.",
   },
   {
     icon: QrCode,
@@ -64,25 +64,25 @@ const howItWorks = [
     step: "01",
     title: "Create Account",
     description:
-      "Sign up as an issuer to create certificates or as a verifier to authenticate products.",
+      "Sign up as a collector to seal your cards. Verifying a card is always public — no account needed.",
   },
   {
     step: "02",
     title: "Purchase Credits",
     description:
-      "Buy credits using credit card or SOL. Credits are used to create and verify certificates.",
+      "Buy credits using credit card or SOL. Credits are used to seal cards and run deep verifications.",
   },
   {
     step: "03",
-    title: "Issue or Verify",
+    title: "Seal or Verify",
     description:
-      "Issuers create certificates with product details. Verifiers scan QR codes to authenticate.",
+      "Collectors seal cards with grading details and photos. Anyone can scan a QR code to verify.",
   },
   {
     step: "04",
     title: "On-Chain Proof",
     description:
-      "Optionally mint certificates as NFTs on Solana for permanent blockchain verification.",
+      "Optionally mint sealed cards as NFTs on Solana for permanent blockchain verification.",
   },
 ];
 
@@ -150,9 +150,9 @@ const faqs = [
       "AuthentiSeal can certify any physical product including luxury goods, art, collectibles, electronics, watches, sneakers, and more. You provide the product details, and we create the verifiable certificate.",
   },
   {
-    question: "How do verifiers authenticate products?",
+    question: "How does verification work?",
     answer:
-      "Verifiers can scan the QR code on a product or search by serial number. Our AI-powered verification compares photos against the original certificate to detect counterfeits.",
+      "Verification is public — anyone can scan a card's QR code or search by serial number at /verify, no account required. Our AI-powered check compares photos against the original sealed certificate to detect counterfeits.",
   },
   {
     question: "Is my data secure?",
@@ -278,14 +278,14 @@ export function LandingPage() {
             </h1>
 
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Issue, verify, and track authentic products on the blockchain.
+              Seal, verify, and track authentic graded cards on the blockchain.
               Tamper-proof certificates powered by Solana's lightning-fast network.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/auth">
                 <Button size="lg" className="bg-solana-gradient hover:opacity-90 w-full sm:w-auto">
-                  Start Issuing Certificates
+                  Start Sealing Your Collection
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
@@ -350,7 +350,7 @@ export function LandingPage() {
               <span className="gradient-text"> Authenticate Products</span>
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              A complete platform for issuing and verifying certificates of authenticity
+              A complete platform for sealing and verifying certificates of authenticity
               on the blockchain.
             </p>
           </div>
@@ -423,7 +423,7 @@ export function LandingPage() {
                 <FileCheck className="h-5 w-5 text-primary" />
               </div>
               <div className="text-3xl md:text-4xl font-bold gradient-text">{platformStats?.totalCertificates ?? "—"}+</div>
-              <p className="text-xs md:text-sm text-muted-foreground mt-1">Certificates Issued</p>
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">Cards Sealed</p>
             </div>
             <div className="glass-card p-6 rounded-xl text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
@@ -444,7 +444,7 @@ export function LandingPage() {
                 <Users className="h-5 w-5 text-primary" />
               </div>
               <div className="text-3xl md:text-4xl font-bold gradient-text">{platformStats?.activeIssuers ?? "—"}</div>
-              <p className="text-xs md:text-sm text-muted-foreground mt-1">Active Issuers</p>
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">Active Collectors</p>
             </div>
           </motion.div>
 
