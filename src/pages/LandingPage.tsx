@@ -350,7 +350,7 @@ export function LandingPage() {
               <span className="gradient-text"> Authenticate Products</span>
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              A complete platform for issuing and verifying certificates of authenticity
+              A complete platform for sealing and verifying certificates of authenticity
               on the blockchain.
             </p>
           </div>
