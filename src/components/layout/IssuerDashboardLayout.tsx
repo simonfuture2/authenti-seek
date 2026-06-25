@@ -33,13 +33,11 @@ interface DashboardLayoutProps {
 }
 
 const issuerNavItems = [
-  { icon: PlusCircle, label: "Create COA", path: "/issuer/create" },
-  { icon: FileImage, label: "Certificates", path: "/issuer/certificates" },
-  { icon: Droplets, label: "LP Certificates", path: "/issuer/certificates?lp=true" },
-  { icon: Send, label: "Transfer", path: "/issuer/transfer" },
-  { icon: QrCode, label: "Scan QR (public)", path: "/verify" },
-  { icon: Search, label: "Search (public)", path: "/verify" },
-  { icon: BarChart3, label: "Analytics", path: "/issuer/analytics" },
+  { icon: FileImage, label: "Collection", path: "/collection" },
+  { icon: PlusCircle, label: "Seal a Card", path: "/seal" },
+  { icon: Send, label: "Transfer", path: "/transfer" },
+  { icon: QrCode, label: "Verify", path: "/verify" },
+  { icon: BarChart3, label: "Analytics", path: "/analytics" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
@@ -184,10 +182,10 @@ export function IssuerDashboardLayout({ children }: DashboardLayoutProps) {
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav
         items={[
-          { icon: PlusCircle, label: "Create", path: "/issuer/create" },
-          { icon: FileImage, label: "Certs", path: "/issuer/certificates" },
-          { icon: Send, label: "Transfer", path: "/issuer/transfer" },
-          { icon: BarChart3, label: "Analytics", path: "/issuer/analytics" },
+          { icon: FileImage, label: "Collection", path: "/collection" },
+          { icon: PlusCircle, label: "Seal", path: "/seal" },
+          { icon: Send, label: "Transfer", path: "/transfer" },
+          { icon: QrCode, label: "Verify", path: "/verify" },
         ]}
       />
     </div>
