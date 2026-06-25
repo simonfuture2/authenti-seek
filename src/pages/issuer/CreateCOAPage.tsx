@@ -1,3 +1,4 @@
+import { AuthentiSealMark } from "@/components/branding/AuthentiSealMark";
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -568,11 +569,11 @@ export function CreateCOAPage() {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: "spring" }}
-                className="mx-auto mb-4 p-4 rounded-full bg-success/10"
+                className="mx-auto mb-4"
               >
-                <CheckCircle2 className="h-12 w-12 text-success" />
+                <AuthentiSealMark size={128} state="verified" />
               </motion.div>
-              <CardTitle className="text-2xl">Certificate Created!</CardTitle>
+              <CardTitle className="text-2xl">Certificate Sealed!</CardTitle>
               <p className="text-muted-foreground">
                 Your Certificate of Authenticity has been created successfully.
               </p>
