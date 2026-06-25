@@ -1079,13 +1079,22 @@ export function CreateCOAPage() {
                     <Button
                       type="submit"
                       className="w-full bg-solana-gradient hover:opacity-90"
-                      disabled={createCertificate.isPending || isSubmitting || isMinting || uploading || uploadingCertImage}
+                      disabled={
+                        createCertificate.isPending ||
+                        isSubmitting ||
+                        isMinting ||
+                        uploading ||
+                        uploadingCertImage ||
+                        graderStatus === "mismatch"
+                      }
                     >
                       {createCertificate.isPending || isSubmitting || isMinting || uploadingCertImage ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                           {uploadingCertImage ? "Uploading Certificate..." : (isSubmitting || isMinting) ? "Storing On-Chain..." : "Creating..."}
                         </>
+                      ) : graderStatus === "mismatch" ? (
+                        <>⚠ Resolve grader mismatch to seal</>
                       ) : (
                         <>
                           Create Certificate
