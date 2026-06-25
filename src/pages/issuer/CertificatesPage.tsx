@@ -177,7 +177,7 @@ export default function CertificatesPage() {
         // Update database with Solana signature
         const { error } = await supabase
           .from("certificates")
-          .update(updateData)
+          .update(updateData as never)
           .eq("id", cert.id)
           .eq("issuer_id", user.id);
 
