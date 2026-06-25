@@ -282,6 +282,15 @@ export type Database = {
           chain_pending_by: string | null
           created_at: string
           current_owner_wallet: string | null
+          grader: string | null
+          grader_card_snapshot: Json
+          grader_cert_number: string | null
+          grader_grade: string | null
+          grader_grade_scale: string | null
+          grader_images: Json
+          grader_match_status: string
+          grader_report_url: string | null
+          grader_verified_at: string | null
           id: string
           issued_at: string
           issuer_id: string | null
@@ -305,6 +314,15 @@ export type Database = {
           chain_pending_by?: string | null
           created_at?: string
           current_owner_wallet?: string | null
+          grader?: string | null
+          grader_card_snapshot?: Json
+          grader_cert_number?: string | null
+          grader_grade?: string | null
+          grader_grade_scale?: string | null
+          grader_images?: Json
+          grader_match_status?: string
+          grader_report_url?: string | null
+          grader_verified_at?: string | null
           id?: string
           issued_at?: string
           issuer_id?: string | null
@@ -328,6 +346,15 @@ export type Database = {
           chain_pending_by?: string | null
           created_at?: string
           current_owner_wallet?: string | null
+          grader?: string | null
+          grader_card_snapshot?: Json
+          grader_cert_number?: string | null
+          grader_grade?: string | null
+          grader_grade_scale?: string | null
+          grader_images?: Json
+          grader_match_status?: string
+          grader_report_url?: string | null
+          grader_verified_at?: string | null
           id?: string
           issued_at?: string
           issuer_id?: string | null
@@ -476,6 +503,57 @@ export type Database = {
           },
           {
             foreignKeyName: "fake_reports_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grader_verifications: {
+        Row: {
+          certificate_id: string
+          checked_at: string
+          checked_by: string | null
+          cross_check: Json | null
+          grader: string
+          grader_cert_number: string
+          id: string
+          raw_response: Json | null
+          result_status: string
+        }
+        Insert: {
+          certificate_id: string
+          checked_at?: string
+          checked_by?: string | null
+          cross_check?: Json | null
+          grader: string
+          grader_cert_number: string
+          id?: string
+          raw_response?: Json | null
+          result_status: string
+        }
+        Update: {
+          certificate_id?: string
+          checked_at?: string
+          checked_by?: string | null
+          cross_check?: Json | null
+          grader?: string
+          grader_cert_number?: string
+          id?: string
+          raw_response?: Json | null
+          result_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grader_verifications_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grader_verifications_certificate_id_fkey"
             columns: ["certificate_id"]
             isOneToOne: false
             referencedRelation: "certificates_public"
