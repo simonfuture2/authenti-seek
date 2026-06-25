@@ -731,7 +731,7 @@ export default function CertificatesPage() {
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">
-                          A verifier has flagged this certificate for on-chain storage. 
+                          This certificate has been flagged for on-chain storage.
                           You must store it on the blockchain within the deadline to maintain validity.
                         </p>
                         <div className="flex items-center gap-2">
