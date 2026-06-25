@@ -5,7 +5,7 @@ const corsHeaders = {
 };
 
 const TRUSTED_DOMAINS = [
-  "collectai.lovable.app",
+  "mycollectai.com",
   "vfttlgqsexcdpxihtwzl.supabase.co",
   "id-preview--c2bfb26c-8b9a-4ca0-a5fc-e041ed4c9702.lovable.app",
 ];
