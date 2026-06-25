@@ -1,4 +1,5 @@
 import { AuthentiSealMark } from "@/components/branding/AuthentiSealMark";
+import coinSlabImage from "@/assets/authentiseal-coin-slab.png.asset.json";
 import React from "react";
 import { usePlatformStats } from "@/hooks/usePlatformStats";
 import { motion } from "framer-motion";
