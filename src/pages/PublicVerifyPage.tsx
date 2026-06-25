@@ -31,6 +31,7 @@ import { verifyCertificateOnChain, getExplorerUrl } from "@/lib/solana";
 import { useToast } from "@/hooks/use-toast";
 import { CollectAILink } from "@/components/ecosystem/CollectAILink";
 import { EcosystemBadge } from "@/components/ecosystem/EcosystemBadge";
+import { GraderTrustBadge } from "@/components/certificate/GraderTrustBadge";
 
 interface PublicCertificate {
   id: string;
