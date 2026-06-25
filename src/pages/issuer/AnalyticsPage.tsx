@@ -37,7 +37,7 @@ import { useIssuerAnalytics } from "@/hooks/useAnalytics";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 
-const COLORS = ["hsl(280, 100%, 65%)", "hsl(174, 100%, 42%)", "hsl(38, 92%, 50%)", "hsl(142, 76%, 45%)"];
+const COLORS = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--warning))", "hsl(var(--success))"];
 
 export function AnalyticsPage() {
   const { data: analytics, isLoading } = useIssuerAnalytics();
@@ -215,7 +215,7 @@ export function AnalyticsPage() {
                         cy="50%"
                         innerRadius={60}
                         outerRadius={100}
-                        fill="#8884d8"
+                        fill="hsl(var(--primary))"
                         paddingAngle={5}
                         dataKey="count"
                         nameKey="category"
@@ -231,9 +231,10 @@ export function AnalyticsPage() {
                       </Pie>
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: "hsl(240, 10%, 8%)",
-                          border: "1px solid hsl(240, 10%, 15%)",
+                          backgroundColor: "hsl(var(--popover))",
+                          border: "1px solid hsl(var(--border))",
                           borderRadius: "8px",
+                          color: "hsl(var(--popover-foreground))",
                         }}
                       />
                     </PieChart>
@@ -327,7 +328,7 @@ export function AnalyticsPage() {
                             : index === 1 
                             ? "bg-muted text-muted-foreground" 
                             : index === 2 
-                            ? "bg-orange-500/20 text-orange-400" 
+                            ? "bg-secondary/20 text-secondary" 
                             : "bg-muted/50 text-muted-foreground"
                         }`}>
                           {index + 1}
