@@ -403,20 +403,35 @@ export function PublicVerifyPage() {
                     animate={{ opacity: 1, scale: 1 }}
                     className="space-y-4 mt-6"
                   >
-                    {/* Authentic Badge */}
-                    <div className="flex flex-col items-center justify-center py-4">
-                      <div className="h-20 w-20 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
-                        <CheckCircle2 className="h-12 w-12 text-green-500" />
-                      </div>
-                      <h3 className="font-bold text-xl text-green-500">Authentic Product</h3>
-                      <p className="text-muted-foreground text-sm mt-1">
-                        This certificate is verified
-                      </p>
+                    {/* Grader trust badge (replaces single "Authentic Product" claim) */}
+                    <GraderTrustBadge
+                      status={certificate.grader_match_status}
+                      grader={certificate.grader}
+                      graderCertNumber={certificate.grader_cert_number}
+                      graderGrade={certificate.grader_grade}
+                      graderGradeScale={certificate.grader_grade_scale}
+                      graderReportUrl={certificate.grader_report_url}
+                      graderImages={certificate.grader_images}
+                      graderVerifiedAt={certificate.grader_verified_at}
+                      graderCardSnapshot={certificate.grader_card_snapshot}
+                      sealed={{
+                        product_name: certificate.product_name,
+                        category: certificate.product_category,
+                        serial_number: certificate.serial_number,
+                      }}
+                      sealedImages={certificate.product_images}
+                      onScrollToSeller={() => {
+                        document
+                          .getElementById("sealed-by-block")
+                          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                      }}
+                    />
+
+                    <div className="flex items-center justify-center pt-1">
                       <Badge
                         variant={certificate.status === "active" ? "default" : "secondary"}
-                        className="mt-3"
                       >
-                        {certificate.status.toUpperCase()}
+                        Status: {certificate.status.toUpperCase()}
                       </Badge>
                     </div>
 
