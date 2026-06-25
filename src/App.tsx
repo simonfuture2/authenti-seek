@@ -27,8 +27,8 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: "issuer" | "verifier" }) {
-  const { user, role, loading } = useAuth();
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -42,15 +42,11 @@ function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode;
     return <Navigate to="/auth" replace />;
   }
 
-  if (requiredRole && role !== requiredRole) {
-    return <Navigate to={role === "issuer" ? "/issuer/create" : "/verifier/scan"} replace />;
-  }
-
   return <>{children}</>;
 }
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
-  const { user, role, loading } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -60,8 +56,8 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (user && role) {
-    return <Navigate to={role === "issuer" ? "/issuer/create" : "/verifier/scan"} replace />;
+  if (user) {
+    return <Navigate to="/issuer/create" replace />;
   }
 
   return <>{children}</>;
@@ -78,19 +74,19 @@ function AppRoutes() {
       <Route path="/issuer/:issuerId" element={<IssuerProfilePage />} />
       <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-      
-      {/* Issuer Routes */}
-      <Route path="/issuer/create" element={<ProtectedRoute requiredRole="issuer"><CreateCOAPage /></ProtectedRoute>} />
-      <Route path="/issuer/certificates" element={<ProtectedRoute requiredRole="issuer"><CertificatesPage /></ProtectedRoute>} />
-      <Route path="/issuer/transfer" element={<ProtectedRoute requiredRole="issuer"><TransferCOAPage /></ProtectedRoute>} />
-      <Route path="/issuer/analytics" element={<ProtectedRoute requiredRole="issuer"><AnalyticsPage /></ProtectedRoute>} />
-      
-      {/* Verifier Routes */}
-      <Route path="/verifier/scan" element={<ProtectedRoute requiredRole="verifier"><ScanQRPage /></ProtectedRoute>} />
-      <Route path="/verifier/search" element={<ProtectedRoute requiredRole="verifier"><SearchPage /></ProtectedRoute>} />
-      <Route path="/verifier/history" element={<ProtectedRoute requiredRole="verifier"><HistoryPage /></ProtectedRoute>} />
-      <Route path="/verifier/report" element={<ProtectedRoute requiredRole="verifier"><ReportFakePage /></ProtectedRoute>} />
-      
+
+      {/* Collector dashboard (single authenticated tier) */}
+      <Route path="/issuer/create" element={<ProtectedRoute><CreateCOAPage /></ProtectedRoute>} />
+      <Route path="/issuer/certificates" element={<ProtectedRoute><CertificatesPage /></ProtectedRoute>} />
+      <Route path="/issuer/transfer" element={<ProtectedRoute><TransferCOAPage /></ProtectedRoute>} />
+      <Route path="/issuer/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+
+      {/* Scan & Search are public — these auth-only mirrors are kept as shortcuts. */}
+      <Route path="/verifier/scan" element={<ProtectedRoute><ScanQRPage /></ProtectedRoute>} />
+      <Route path="/verifier/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+      <Route path="/verifier/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
+      <Route path="/verifier/report" element={<ProtectedRoute><ReportFakePage /></ProtectedRoute>} />
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

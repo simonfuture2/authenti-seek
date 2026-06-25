@@ -3,14 +3,15 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { logError } from "@/lib/errorHandler";
 
-type UserRole = "issuer" | "verifier" | null;
+type UserRole = "collector" | "issuer" | "verifier" | null;
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   role: UserRole;
+  isCollector: boolean;
   loading: boolean;
-  signUp: (email: string, password: string, role: "issuer" | "verifier", displayName?: string, companyName?: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, displayName?: string, companyName?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -35,18 +36,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return null;
     }
 
-    return data?.role as UserRole;
+    return (data?.role as UserRole) ?? null;
   };
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Use setTimeout to avoid potential Supabase client deadlock
           setTimeout(async () => {
             const userRole = await fetchUserRole(session.user.id);
             setRole(userRole);
@@ -59,7 +58,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -80,7 +78,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (
     email: string,
     password: string,
-    selectedRole: "issuer" | "verifier",
     displayName?: string,
     companyName?: string
   ) => {
@@ -96,14 +93,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
 
       if (data.user) {
-        // Create user role
         const { error: roleError } = await supabase
           .from("user_roles")
-          .insert({ user_id: data.user.id, role: selectedRole });
+          .insert({ user_id: data.user.id, role: "collector" });
 
         if (roleError) throw roleError;
 
-        // Update profile with additional info
         const { error: profileError } = await supabase
           .from("profiles")
           .update({
@@ -116,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           logError(profileError, "AuthContext.signUp.profileUpdate");
         }
 
-        setRole(selectedRole);
+        setRole("collector");
       }
 
       return { error: null };
@@ -147,9 +142,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setRole(null);
   };
 
+  const isCollector = role === "collector" || role === "issuer" || role === "verifier";
+
   return (
     <AuthContext.Provider
-      value={{ user, session, role, loading, signUp, signIn, signOut }}
+      value={{ user, session, role, isCollector, loading, signUp, signIn, signOut }}
     >
       {children}
     </AuthContext.Provider>
