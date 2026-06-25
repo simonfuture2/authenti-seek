@@ -859,7 +859,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "issuer" | "verifier"
+      app_role: "issuer" | "verifier" | "collector"
       certificate_status: "active" | "transferred" | "revoked"
       credit_package: "starter" | "pro" | "enterprise"
       credit_transaction_type:
@@ -1005,7 +1005,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["issuer", "verifier"],
+      app_role: ["issuer", "verifier", "collector"],
       certificate_status: ["active", "transferred", "revoked"],
       credit_package: ["starter", "pro", "enterprise"],
       credit_transaction_type: [
