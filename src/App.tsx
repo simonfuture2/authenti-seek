@@ -57,7 +57,7 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (user) {
-    return <Navigate to="/issuer/create" replace />;
+    return <Navigate to="/collection" replace />;
   }
 
   return <>{children}</>;
