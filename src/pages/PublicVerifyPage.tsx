@@ -460,7 +460,7 @@ export function PublicVerifyPage() {
                           )}
                           <div>
                             <p className="text-xs text-muted-foreground uppercase tracking-wider">
-                              Issued By
+                              Sealed By
                             </p>
                             {certificate.issuer_id ? (
                               <Link
@@ -469,14 +469,14 @@ export function PublicVerifyPage() {
                               >
                                 {certificate.profiles?.company_name ||
                                   certificate.profiles?.display_name ||
-                                  "Verified Issuer"}
+                                  "Verified Collector"}
                                 <ExternalLink className="h-3 w-3" />
                               </Link>
                             ) : (
                               <p className="text-sm">
                                 {certificate.profiles?.company_name ||
                                   certificate.profiles?.display_name ||
-                                  "Verified Issuer"}
+                                  "Verified Collector"}
                               </p>
                             )}
                           </div>
