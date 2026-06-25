@@ -13,6 +13,8 @@ import {
   User,
   FileImage,
   Droplets,
+  QrCode,
+  Search,
 } from "lucide-react";
 import authentisealIcon from "@/assets/authentiseal-icon.png";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
@@ -35,6 +37,8 @@ const issuerNavItems = [
   { icon: FileImage, label: "Certificates", path: "/issuer/certificates" },
   { icon: Droplets, label: "LP Certificates", path: "/issuer/certificates?lp=true" },
   { icon: Send, label: "Transfer", path: "/issuer/transfer" },
+  { icon: QrCode, label: "Scan QR (public)", path: "/verify" },
+  { icon: Search, label: "Search (public)", path: "/verify" },
   { icon: BarChart3, label: "Analytics", path: "/issuer/analytics" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
@@ -90,7 +94,7 @@ export function IssuerDashboardLayout({ children }: DashboardLayoutProps) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">
-                {profile?.display_name || "Issuer"}
+                {profile?.display_name || "Collector"}
               </p>
               <p className="text-xs text-muted-foreground truncate">
                 {profile?.company_name || profile?.email}
