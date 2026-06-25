@@ -379,21 +379,22 @@ export function CreateCOAPage() {
     // and append the audit row, but writing here first guarantees the snapshot
     // sticks even if the edge function call fails.
     if (graderChoice !== "none" && graderCertNumber.trim()) {
-      const previewUpdate: Record<string, unknown> = {
-        grader: graderChoice,
-        grader_cert_number: graderCertNumber.trim(),
-      };
-      if (graderResult) {
-        previewUpdate.grader_grade = graderResult.grade;
-        previewUpdate.grader_grade_scale = graderResult.gradeScale;
-        previewUpdate.grader_report_url = graderResult.reportUrl;
-        previewUpdate.grader_images = graderResult.images ?? {};
-        previewUpdate.grader_card_snapshot = graderResult.snapshot ?? {};
-        previewUpdate.grader_match_status = graderResult.status;
-      }
       const { error: graderUpdateErr } = await supabase
         .from("certificates")
-        .update(previewUpdate)
+        .update({
+          grader: graderChoice,
+          grader_cert_number: graderCertNumber.trim(),
+          ...(graderResult
+            ? {
+                grader_grade: graderResult.grade ?? null,
+                grader_grade_scale: graderResult.gradeScale ?? null,
+                grader_report_url: graderResult.reportUrl,
+                grader_images: (graderResult.images ?? {}) as never,
+                grader_card_snapshot: (graderResult.snapshot ?? {}) as never,
+                grader_match_status: graderResult.status,
+              }
+            : {}),
+        })
         .eq("id", result.id);
       if (graderUpdateErr) {
         console.error("Grader snapshot save failed:", graderUpdateErr);
