@@ -13,7 +13,19 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Space Grotesk', 'sans-serif'],
+        heading: ['Fredoka', 'sans-serif'],
+      },
       colors: {
+        collectai: {
+          purple: "hsl(var(--collectai-purple))",
+          blue: "hsl(var(--collectai-blue))",
+          orange: "hsl(var(--collectai-orange))",
+          pink: "hsl(var(--collectai-pink))",
+          green: "hsl(var(--collectai-green))",
+          yellow: "hsl(var(--collectai-yellow))",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -97,7 +109,8 @@ export default {
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
-        "solana-gradient": "linear-gradient(135deg, hsl(280 100% 65%) 0%, hsl(174 100% 42%) 100%)",
+        "solana-gradient": "linear-gradient(135deg, hsl(280 85% 65%) 0%, hsl(200 90% 55%) 100%)",
+        "gradient-gold": "var(--gradient-gold)",
       },
     },
   },
