@@ -64,25 +64,25 @@ const howItWorks = [
     step: "01",
     title: "Create Account",
     description:
-      "Sign up as an issuer to create certificates or as a verifier to authenticate products.",
+      "Sign up as a collector to seal your cards. Verifying a card is always public — no account needed.",
   },
   {
     step: "02",
     title: "Purchase Credits",
     description:
-      "Buy credits using credit card or SOL. Credits are used to create and verify certificates.",
+      "Buy credits using credit card or SOL. Credits are used to seal cards and run deep verifications.",
   },
   {
     step: "03",
-    title: "Issue or Verify",
+    title: "Seal or Verify",
     description:
-      "Issuers create certificates with product details. Verifiers scan QR codes to authenticate.",
+      "Collectors seal cards with grading details and photos. Anyone can scan a QR code to verify.",
   },
   {
     step: "04",
     title: "On-Chain Proof",
     description:
-      "Optionally mint certificates as NFTs on Solana for permanent blockchain verification.",
+      "Optionally mint sealed cards as NFTs on Solana for permanent blockchain verification.",
   },
 ];
 
