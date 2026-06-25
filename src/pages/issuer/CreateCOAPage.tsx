@@ -140,6 +140,13 @@ export function CreateCOAPage() {
   // Minting mode selection
   const [mintingMode, setMintingMode] = useState<MintingMode>("nft");
 
+  // Grader cert verification (Phase 1)
+  const [graderChoice, setGraderChoice] = useState<GraderChoice>("none");
+  const [graderCertNumber, setGraderCertNumber] = useState("");
+  const [graderStatus, setGraderStatus] = useState<GraderMatchStatus | null>("self_attested");
+  const [graderResult, setGraderResult] = useState<GraderVerifyResult | null>(null);
+  const { verify: commitGraderVerification } = useGraderVerification();
+
   const { createCertificate } = useCertificates();
   const { mintCertificate, isSubmitting: isMinting } = useNFTMinting();
   const { publicKey, connected } = useWallet();
