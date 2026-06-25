@@ -1,3 +1,4 @@
+import { AuthentiSealMark } from "@/components/branding/AuthentiSealMark";
 import React from "react";
 import { usePlatformStats } from "@/hooks/usePlatformStats";
 import { motion } from "framer-motion";
