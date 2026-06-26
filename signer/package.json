@@ -5,7 +5,7 @@
   "type": "module",
   "description": "AuthentiSeal platform signer service — provisions managed wallets, uploads COA metadata + image to Arweave, and mints compressed NFTs paid by the platform.",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",

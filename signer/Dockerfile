@@ -1,4 +1,5 @@
-FROM node:20-slim
+# Node 22+ ships a global WebSocket, which @supabase/supabase-js (realtime) needs at init.
+FROM node:22-slim
 
 WORKDIR /app
 
