@@ -13,7 +13,7 @@
 import React, { useState, useCallback } from "react";
 
 const AUTHENTISEAL_API =
-  "https://vfttlgqsexcdpxihtwzl.supabase.co/functions/v1/verify-public";
+  "https://ffudcsfmihkrjodfilnt.supabase.co/functions/v1/verify-public";
 const AUTHENTISEAL_URL = "https://authenti-seek.lovable.app";
 
 interface VerifyResult {

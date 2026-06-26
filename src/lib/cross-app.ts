@@ -12,11 +12,11 @@ export const ECOSYSTEM_APPS = {
       `https://authenti-seek.lovable.app/verify?serial=${encodeURIComponent(serial)}`,
     issuerProfileUrl: (issuerId: string) =>
       `https://authenti-seek.lovable.app/issuer/${issuerId}`,
-    apiBaseUrl: "https://vfttlgqsexcdpxihtwzl.supabase.co/functions/v1",
+    apiBaseUrl: "https://ffudcsfmihkrjodfilnt.supabase.co/functions/v1",
     verifyApiUrl: (serial: string) =>
-      `https://vfttlgqsexcdpxihtwzl.supabase.co/functions/v1/verify-public?serial=${encodeURIComponent(serial)}`,
+      `https://ffudcsfmihkrjodfilnt.supabase.co/functions/v1/verify-public?serial=${encodeURIComponent(serial)}`,
     collectaiIdentifyUrl:
-      "https://vfttlgqsexcdpxihtwzl.supabase.co/functions/v1/collectai-identify",
+      "https://ffudcsfmihkrjodfilnt.supabase.co/functions/v1/collectai-identify",
     createCOAUrl: (token: string) =>
       `https://authenti-seek.lovable.app/issuer/create?token=${encodeURIComponent(token)}&ref=collectai`,
   },
