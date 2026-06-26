@@ -24,6 +24,7 @@ import DevelopersPage from "./pages/DevelopersPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import NotFound from "./pages/NotFound";
+import DiagnosticsPage from "./pages/DiagnosticsPage";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +72,7 @@ function AppRoutes() {
       <Route path="/developers" element={<DevelopersPage />} />
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/diagnostics" element={<DiagnosticsPage />} />
       <Route path="/issuer/:issuerId" element={<IssuerProfilePage />} />
       <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
