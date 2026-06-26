@@ -278,6 +278,7 @@ export type Database = {
       }
       certificates: {
         Row: {
+          asset_id: string | null
           chain_pending_at: string | null
           chain_pending_by: string | null
           created_at: string
@@ -292,10 +293,15 @@ export type Database = {
           grader_report_url: string | null
           grader_verified_at: string | null
           id: string
+          image_uri: string | null
           issued_at: string
           issuer_id: string | null
           metadata: Json | null
           metadata_hash: string | null
+          metadata_uri: string | null
+          mint_error: string | null
+          mint_status: Database["public"]["Enums"]["mint_status"]
+          minted_at: string | null
           physical_attributes: Json
           product_category: string | null
           product_description: string | null
@@ -310,6 +316,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          asset_id?: string | null
           chain_pending_at?: string | null
           chain_pending_by?: string | null
           created_at?: string
@@ -324,10 +331,15 @@ export type Database = {
           grader_report_url?: string | null
           grader_verified_at?: string | null
           id?: string
+          image_uri?: string | null
           issued_at?: string
           issuer_id?: string | null
           metadata?: Json | null
           metadata_hash?: string | null
+          metadata_uri?: string | null
+          mint_error?: string | null
+          mint_status?: Database["public"]["Enums"]["mint_status"]
+          minted_at?: string | null
           physical_attributes?: Json
           product_category?: string | null
           product_description?: string | null
@@ -342,6 +354,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          asset_id?: string | null
           chain_pending_at?: string | null
           chain_pending_by?: string | null
           created_at?: string
@@ -356,10 +369,15 @@ export type Database = {
           grader_report_url?: string | null
           grader_verified_at?: string | null
           id?: string
+          image_uri?: string | null
           issued_at?: string
           issuer_id?: string | null
           metadata?: Json | null
           metadata_hash?: string | null
+          metadata_uri?: string | null
+          mint_error?: string | null
+          mint_status?: Database["public"]["Enums"]["mint_status"]
+          minted_at?: string | null
           physical_attributes?: Json
           product_category?: string | null
           product_description?: string | null
@@ -560,6 +578,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      managed_wallets: {
+        Row: {
+          address: string
+          created_at: string
+          encrypted_secret: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          encrypted_secret: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          encrypted_secret?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       nfc_verification_nonces: {
         Row: {
@@ -962,6 +1007,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      refund_credits: {
+        Args: {
+          p_amount: number
+          p_description?: string
+          p_reference_id?: string
+          p_user_id: string
+        }
+        Returns: {
+          new_balance: number
+          success: boolean
+        }[]
+      }
     }
     Enums: {
       app_role: "issuer" | "verifier" | "collector"
@@ -981,6 +1038,7 @@ export type Database = {
         | "transferred"
         | "minted"
         | "revoked"
+      mint_status: "unminted" | "minting" | "minted" | "failed"
       payment_method: "stripe" | "sol"
       report_status: "pending" | "reviewed" | "resolved" | "dismissed"
     }
@@ -1129,6 +1187,7 @@ export const Constants = {
         "minted",
         "revoked",
       ],
+      mint_status: ["unminted", "minting", "minted", "failed"],
       payment_method: ["stripe", "sol"],
       report_status: ["pending", "reviewed", "resolved", "dismissed"],
     },
