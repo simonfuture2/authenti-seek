@@ -1,18 +1,27 @@
 import "dotenv/config";
 
+/**
+ * Normalize an env value: trim whitespace/newlines and strip a single pair of wrapping
+ * quotes. Hosting dashboards (Railway, etc.) often introduce these when pasting, which
+ * would corrupt base58 keys / URLs.
+ */
+function clean(value: string): string {
+  return value.trim().replace(/^(['"])([\s\S]*)\1$/, "$2").trim();
+}
+
 /** Read a required env var or throw at startup (fail fast, not mid-request). */
 function required(name: string): string {
   const value = process.env[name];
   if (!value || value.trim() === "") {
     throw new Error(`Missing required env var: ${name}`);
   }
-  return value;
+  return clean(value);
 }
 
 /** Read an env var that is only required at request time (setup script doesn't need them). */
 function optional(name: string): string | undefined {
   const value = process.env[name];
-  return value && value.trim() !== "" ? value : undefined;
+  return value && value.trim() !== "" ? clean(value) : undefined;
 }
 
 export const env = {
