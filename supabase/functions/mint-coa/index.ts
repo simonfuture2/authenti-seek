@@ -60,7 +60,8 @@ serve(async (req) => {
       return json({ error: "certificateId is required" }, 400);
     }
 
-    const SIGNER_URL = Deno.env.get("SIGNER_URL")?.trim();
+    const SIGNER_URL =
+      Deno.env.get("SIGNER_URL_V2")?.trim() ?? Deno.env.get("SIGNER_URL")?.trim();
     const SIGNER_SHARED_SECRET =
       Deno.env.get("SIGNER_SHARED_SECRET_V2") ?? Deno.env.get("SIGNER_SHARED_SECRET");
     if (!SIGNER_URL || !SIGNER_SHARED_SECRET) {
