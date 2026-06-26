@@ -11,6 +11,10 @@ const CREDITS_PER_SEAL = 1;
 const PUBLIC_APP_URL =
   Deno.env.get("PUBLIC_APP_URL") || "https://authenti-seek.lovable.app";
 
+function cleanEnv(value: string): string {
+  return value.trim().replace(/^("|')([\s\S]*)\1$/, "$2").trim();
+}
+
 /** Base64-encode bytes in chunks (avoids stack overflow on large images). */
 function toBase64(bytes: Uint8Array): string {
   let binary = "";
@@ -56,11 +60,12 @@ serve(async (req) => {
       return json({ error: "certificateId is required" }, 400);
     }
 
-    const SIGNER_URL = Deno.env.get("SIGNER_URL");
+    const SIGNER_URL = Deno.env.get("SIGNER_URL")?.trim();
     const SIGNER_SHARED_SECRET = Deno.env.get("SIGNER_SHARED_SECRET");
     if (!SIGNER_URL || !SIGNER_SHARED_SECRET) {
       throw new Error("SIGNER_URL / SIGNER_SHARED_SECRET are not configured");
     }
+    const signerSecret = cleanEnv(SIGNER_SHARED_SECRET);
 
     // --- Service-role client for privileged reads/writes (bypasses RLS) ---
     const admin = createClient(
@@ -152,7 +157,7 @@ serve(async (req) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-signer-secret": SIGNER_SHARED_SECRET,
+          "x-signer-secret": signerSecret,
         },
         body: JSON.stringify({ userId, image: imageBase64, metadata: nftMetadata }),
       });
