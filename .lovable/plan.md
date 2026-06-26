@@ -1,30 +1,26 @@
-# Phase 0 Verification Plan
+Audit the 28 migration files in `supabase/migrations/` against the live Lovable Cloud project (`vfttlgqsexcdpxihtwzl`), then apply any missing migrations so the full schema is in place.
 
-Run the checklist as a mix of static checks (grep/build) and a live Playwright pass against the running preview. No app code changes — this is verification only. If any item fails, I'll report it and propose a fix in a follow-up plan.
+1. Schema audit (read-only)
+- Compare each migration file against the live database catalog (`information_schema`, `pg_tables`, `pg_policies`, `pg_enum`, `pg_proc`).
+- Check all tables, enums, columns, indexes, RLS policies, grants, functions, and views created across the migration chain.
+- Note the key tables already confirmed present: `profiles`, `certificates`, `managed_wallets`, `user_credits`, `grader_verifications`, `certificate_metadata_versions`, `credit_transactions`, etc.
+- Identify any gaps (e.g., missing column, policy, index, or view recreation).
 
-## 1. Static checks (shell, read-only)
+2. If gaps are found
+- Create a single targeted migration SQL that replays the missing pieces in dependency order.
+- Run it through the Lovable migration tool (`supabase--migration`).
+- Ensure every new `CREATE TABLE` in `public` follows the required order: `CREATE TABLE`, `GRANT`, `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`, `CREATE POLICY`.
+- Re-generate Supabase types after the migration so the frontend types match.
 
-- `rg -n "issuer|verifier" src/components/layout src/pages/LandingPage.tsx src/pages/issuer/CreateCOAPage.tsx` — confirm no user-facing "issuer"/"verifier" copy remains in nav, seal page, or landing hero (matches inside route paths like `/issuer/create` and DB column `issuer_id` are expected and OK).
-- `rg -n "collectai\.lovable\.app|mycollectai\.com" src/lib/cross-app.ts supabase/functions/collectai-callback/index.ts` — confirm only `mycollectai.com` remains.
-- `rg -n "/issuer/create|/issuer/certificates|/issuer/transfer|/verifier/scan|/verifier/search|/collection|/seal|/transfer|/verify" src/App.tsx` — confirm redirects + new aliases are wired.
-- `bunx tsgo --noEmit` — TypeScript build clean, Supabase generated types resolve.
+3. If no gaps are found
+- Report the confirmation that all 28 migrations are already applied and the schema is in sync.
 
-## 2. Live checks (Playwright against localhost dev server)
+4. Verification
+- Re-query the database to confirm the audited objects exist.
+- Run a quick build check (`bunx tsgo --noEmit`) to confirm types still resolve against the live schema.
 
-Single script under `/tmp/browser/phase0/` that:
+Out of scope
+- No data seeding or destructive resets.
+- No changes to edge functions or frontend code unless the migration requires a type/code update.
 
-1. Restores the injected Supabase session into localStorage, navigates to `/` while signed in → asserts redirect lands on `/collection` with no role-picker UI. Screenshot.
-2. Goes to `/seal`, fills the minimum required fields, submits, and confirms the new certificate appears in `/collection`. Screenshot before + after.
-3. Reloads `/collection` and asserts every row's owner matches the signed-in user (spot-check via visible "Sealed by" label or row count vs. a second query).
-4. Visits `/issuer/create`, `/issuer/certificates`, `/issuer/transfer`, `/verifier/scan`, `/verifier/search` and asserts each ends on `/seal`, `/collection`, `/transfer`, `/verify`, `/verify` respectively.
-5. Clears storage, visits `/verify` signed-out → asserts page renders (no auth redirect). Screenshot.
-6. Captures the landing hero, top nav, and seal page screenshots; greps the rendered DOM text for `issuer`/`verifier` — must be zero matches.
-
-## 3. Reporting
-
-I'll post a pass/fail table for the 7 checklist items with screenshot evidence for the live ones and the exact grep/build output for the static ones. Anything failing gets a short root-cause note and I'll wait for approval before fixing.
-
-## Out of scope
-
-- No DB migrations, no edge function redeploys, no code edits.
-- Won't touch `/issuer/*` source paths or `issuer_id` column — those are intentionally preserved.
+Note: This plan assumes the target is the currently connected Lovable Cloud project. If you meant a different/newly connected Supabase project, let me know and I’ll adjust the target first.
