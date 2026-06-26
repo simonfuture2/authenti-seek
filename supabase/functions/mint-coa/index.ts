@@ -61,7 +61,8 @@ serve(async (req) => {
     }
 
     const SIGNER_URL = Deno.env.get("SIGNER_URL")?.trim();
-    const SIGNER_SHARED_SECRET = Deno.env.get("SIGNER_SHARED_SECRET");
+    const SIGNER_SHARED_SECRET =
+      Deno.env.get("SIGNER_SHARED_SECRET_V2") ?? Deno.env.get("SIGNER_SHARED_SECRET");
     if (!SIGNER_URL || !SIGNER_SHARED_SECRET) {
       throw new Error("SIGNER_URL / SIGNER_SHARED_SECRET are not configured");
     }
