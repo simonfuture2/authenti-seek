@@ -2,9 +2,10 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Install deps first for better layer caching.
+# Install deps first for better layer caching. tsx is a runtime dep (runs the TS entrypoint),
+# so install everything — do NOT use --omit=dev here.
 COPY package.json package-lock.json* ./
-RUN npm install --omit=dev || npm install
+RUN npm install
 
 COPY . .
 
