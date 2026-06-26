@@ -1,0 +1,34 @@
+{
+  "name": "authentiseal-signer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AuthentiSeal platform signer service — provisions managed wallets, uploads COA metadata + image to Arweave, and mints compressed NFTs paid by the platform.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node --import tsx src/server.ts",
+    "setup": "tsx scripts/setup.ts",
+    "export-key": "tsx scripts/export-keypair.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@metaplex-foundation/mpl-bubblegum": "^5.0.2",
+    "@metaplex-foundation/mpl-core": "^1.10.0",
+    "@metaplex-foundation/umi": "^1.4.1",
+    "@metaplex-foundation/umi-bundle-defaults": "^1.4.1",
+    "@metaplex-foundation/umi-uploader-irys": "^1.5.0",
+    "@solana/web3.js": "^1.98.4",
+    "@supabase/supabase-js": "^2.93.1",
+    "bs58": "^6.0.0",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.16.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.3"
+  }
+}

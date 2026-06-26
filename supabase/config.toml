@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.collectai-callback]
 verify_jwt = false
+
+[functions.mint-coa]
+verify_jwt = false

@@ -70,6 +70,7 @@ import { CertificateTheme, SealStyle } from "@/components/certificate/Certificat
 import { MintModeSelector } from "@/components/certificate/MintModeSelector";
 import { MintingMode } from "@/lib/metaplex";
 import { useNFTMinting } from "@/hooks/useNFTMinting";
+import { useInvisibleMint } from "@/hooks/useInvisibleMint";
 
 // Verification data components
 import { PhysicalAttributesForm } from "@/components/issuer/PhysicalAttributesForm";
@@ -117,6 +118,9 @@ export function CreateCOAPage() {
   const [collectAICardId, setCollectAICardId] = useState<string | null>(null);
   const isCollectAIReferral = searchParams.get("ref") === "collectai";
   const [createdCert, setCreatedCert] = useState<Certificate | null>(null);
+  // Invisible mint is the default. The legacy wallet-popup flow lives behind "Advanced".
+  const [advancedMint, setAdvancedMint] = useState(false);
+  const [sealStatus, setSealStatus] = useState<"idle" | "sealing" | "sealed">("idle");
   const [storeOnChain, setStoreOnChain] = useState(true);
   const [onChainSignature, setOnChainSignature] = useState<string | null>(null);
   const [productImages, setProductImages] = useState<string[]>([]);
@@ -150,6 +154,7 @@ export function CreateCOAPage() {
 
   const { createCertificate } = useCertificates();
   const { mintCertificate, isSubmitting: isMinting } = useNFTMinting();
+  const { mintInvisible, isMinting: isInvisibleMinting } = useInvisibleMint();
   const { publicKey, connected } = useWallet();
   const { submitCertificate, isSubmitting, getExplorerUrl } = useSolanaTransaction();
   const { user } = useAuth();
@@ -441,8 +446,8 @@ export function CreateCOAPage() {
       }
     }
 
-    // If user wants to store on-chain and wallet is connected
-    if (storeOnChain && connected && publicKey) {
+    // Legacy advanced path: user opted into the wallet-popup flow with a connected wallet.
+    if (advancedMint && storeOnChain && connected && publicKey) {
       const timestamp = Date.now();
       
       // Include the stored certificate image URL in on-chain metadata
@@ -496,6 +501,24 @@ export function CreateCOAPage() {
           description: "Certificate created, but the grader cross-check couldn't be saved.",
           variant: "destructive",
         });
+      }
+    }
+
+    // Invisible mint (default): seal mints a cNFT to the user's managed wallet via the
+    // platform signer — no wallet popup. Runs after the grader commit above so the
+    // server-side mismatch gate sees the finalized grader_match_status.
+    if (!advancedMint) {
+      setSealStatus("sealing");
+      const mintResult = await mintInvisible(result.id);
+      if (mintResult?.success) {
+        setSealStatus("sealed");
+        if (mintResult.signature) setOnChainSignature(mintResult.signature);
+        toast({
+          title: "Sealed ✓",
+          description: "A permanent certificate was minted to your collection.",
+        });
+      } else {
+        setSealStatus("idle");
       }
     }
 
@@ -1068,51 +1091,84 @@ export function CreateCOAPage() {
                       disabled={createCertificate.isPending}
                     />
 
-                    {/* On-Chain Storage Toggle */}
-                    <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-border">
-                      <div className="flex items-center gap-3">
+                    {/* Default: invisible, platform-paid mint to the user's managed wallet. */}
+                    {!advancedMint && (
+                      <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 border border-border">
                         <div className="p-2 rounded-lg bg-primary/10">
                           <Link2 className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium">Store On-Chain</p>
+                          <p className="text-sm font-medium">Sealed permanently — automatically</p>
                           <p className="text-xs text-muted-foreground">
-                            Permanently record on Solana blockchain
+                            Sealing mints a permanent certificate to your collection. No wallet or fees needed.
                           </p>
                         </div>
                       </div>
-                      <Switch
-                        checked={storeOnChain}
-                        onCheckedChange={setStoreOnChain}
-                        disabled={!connected}
-                      />
+                    )}
+
+                    {/* Advanced toggle: opt into the legacy wallet-popup on-chain flow. */}
+                    <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-border">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <Wallet className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Advanced (connect wallet)</p>
+                          <p className="text-xs text-muted-foreground">
+                            Sign the mint yourself from a connected wallet instead
+                          </p>
+                        </div>
+                      </div>
+                      <Switch checked={advancedMint} onCheckedChange={setAdvancedMint} />
                     </div>
 
-                    {/* Minting Mode Selector - shown when on-chain is enabled */}
-                    {storeOnChain && connected && (
-                      <MintModeSelector
-                        value={mintingMode}
-                        onChange={setMintingMode}
-                        disabled={createCertificate.isPending || isMinting}
-                      />
-                    )}
-
-                    {storeOnChain && !connected && (
-                      <p className="text-sm text-warning">
-                        ⚠️ Connect your wallet to store on-chain
-                      </p>
-                    )}
-
-                    {publicKey && (
-                      <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
-                        <Wallet className="h-5 w-5 text-primary" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium">Connected Wallet</p>
-                          <p className="text-xs text-muted-foreground font-mono truncate">
-                            {publicKey.toBase58()}
-                          </p>
+                    {advancedMint && (
+                      <>
+                        <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-border">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-primary/10">
+                              <Link2 className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">Store On-Chain</p>
+                              <p className="text-xs text-muted-foreground">
+                                Permanently record on Solana blockchain
+                              </p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={storeOnChain}
+                            onCheckedChange={setStoreOnChain}
+                            disabled={!connected}
+                          />
                         </div>
-                      </div>
+
+                        {storeOnChain && connected && (
+                          <MintModeSelector
+                            value={mintingMode}
+                            onChange={setMintingMode}
+                            disabled={createCertificate.isPending || isMinting}
+                          />
+                        )}
+
+                        {storeOnChain && !connected && (
+                          <p className="text-sm text-warning">
+                            ⚠️ Connect your wallet to store on-chain
+                          </p>
+                        )}
+
+                        {publicKey && (
+                          <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
+                            <Wallet className="h-5 w-5 text-primary" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium">Connected Wallet</p>
+                              <p className="text-xs text-muted-foreground font-mono truncate">
+                                {publicKey.toBase58()}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
 
                     <Button
@@ -1122,23 +1178,34 @@ export function CreateCOAPage() {
                         createCertificate.isPending ||
                         isSubmitting ||
                         isMinting ||
+                        isInvisibleMinting ||
                         uploading ||
                         uploadingCertImage ||
                         graderStatus === "mismatch"
                       }
                     >
-                      {createCertificate.isPending || isSubmitting || isMinting || uploadingCertImage ? (
+                      {createCertificate.isPending || isSubmitting || isMinting || isInvisibleMinting || uploadingCertImage ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          {uploadingCertImage ? "Uploading Certificate..." : (isSubmitting || isMinting) ? "Storing On-Chain..." : "Creating..."}
+                          {uploadingCertImage
+                            ? "Uploading Certificate..."
+                            : isInvisibleMinting || sealStatus === "sealing"
+                            ? "Sealing…"
+                            : isSubmitting || isMinting
+                            ? "Storing On-Chain..."
+                            : "Creating..."}
                         </>
                       ) : graderStatus === "mismatch" ? (
                         <>⚠ Resolve grader mismatch to seal</>
-                      ) : (
+                      ) : sealStatus === "sealed" ? (
+                        <>Sealed ✓</>
+                      ) : advancedMint ? (
                         <>
                           Create Certificate
                           {storeOnChain && connected && (mintingMode === "nft" ? " + Mint NFT" : " + Store On-Chain")}
                         </>
+                      ) : (
+                        <>Seal Certificate</>
                       )}
                     </Button>
                   </form>

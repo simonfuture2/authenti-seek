@@ -44,6 +44,7 @@ import { IssuerDashboardLayout } from "@/components/layout/IssuerDashboardLayout
 import { useCertificates, Certificate } from "@/hooks/useCertificates";
 import { useToast } from "@/hooks/use-toast";
 import { useNFTMinting } from "@/hooks/useNFTMinting";
+import { useInvisibleMint } from "@/hooks/useInvisibleMint";
 import { getExplorerUrl } from "@/lib/solana";
 import { getExplorerAddressUrl } from "@/lib/solana-config";
 import { MintingMode } from "@/lib/metaplex";
@@ -124,6 +125,22 @@ export default function CertificatesPage() {
   const { certificates, isLoading, refetch } = useCertificates();
   const { toast } = useToast();
   const { mintCertificate, isConnected, publicKey, isSubmitting } = useNFTMinting();
+  const { mintInvisible, isMinting: isRetrying } = useInvisibleMint();
+  const [retryingId, setRetryingId] = useState<string | null>(null);
+
+  // Retry a failed/unfinished invisible mint (free — the credit was refunded on failure).
+  const handleRetryMint = async (cert: Certificate) => {
+    setRetryingId(cert.id);
+    try {
+      const result = await mintInvisible(cert.id);
+      if (result?.success) {
+        toast({ title: "Sealed ✓", description: "Certificate minted to your collection." });
+        refetch();
+      }
+    } finally {
+      setRetryingId(null);
+    }
+  };
   const [searchParams] = useSearchParams();
   const isLPView = searchParams.get("lp") === "true";
 
@@ -587,6 +604,25 @@ export default function CertificatesPage() {
                               <AlertTriangle className="h-3 w-3" />
                               VOID
                             </Badge>
+                          )}
+                          {cert.mint_status === "failed" && !cert.solana_signature && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="h-6 px-2 text-xs gap-1"
+                              disabled={isRetrying && retryingId === cert.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRetryMint(cert);
+                              }}
+                            >
+                              {isRetrying && retryingId === cert.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <AlertTriangle className="h-3 w-3" />
+                              )}
+                              Retry seal
+                            </Button>
                           )}
                         </div>
 

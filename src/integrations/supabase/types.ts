@@ -278,11 +278,17 @@ export type Database = {
       }
       certificates: {
         Row: {
+          asset_id: string | null
           chain_pending_at: string | null
           chain_pending_by: string | null
           created_at: string
           current_owner_wallet: string | null
           grader: string | null
+          image_uri: string | null
+          metadata_uri: string | null
+          mint_error: string | null
+          mint_status: string
+          minted_at: string | null
           grader_card_snapshot: Json
           grader_cert_number: string | null
           grader_grade: string | null
@@ -310,11 +316,17 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          asset_id?: string | null
           chain_pending_at?: string | null
           chain_pending_by?: string | null
           created_at?: string
           current_owner_wallet?: string | null
           grader?: string | null
+          image_uri?: string | null
+          metadata_uri?: string | null
+          mint_error?: string | null
+          mint_status?: string
+          minted_at?: string | null
           grader_card_snapshot?: Json
           grader_cert_number?: string | null
           grader_grade?: string | null
@@ -342,11 +354,17 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          asset_id?: string | null
           chain_pending_at?: string | null
           chain_pending_by?: string | null
           created_at?: string
           current_owner_wallet?: string | null
           grader?: string | null
+          image_uri?: string | null
+          metadata_uri?: string | null
+          mint_error?: string | null
+          mint_status?: string
+          minted_at?: string | null
           grader_card_snapshot?: Json
           grader_cert_number?: string | null
           grader_grade?: string | null
@@ -611,6 +629,7 @@ export type Database = {
           display_name: string | null
           email: string
           id: string
+          managed_wallet_address: string | null
           updated_at: string
           user_id: string
           wallet_address: string | null
@@ -622,6 +641,7 @@ export type Database = {
           display_name?: string | null
           email: string
           id?: string
+          managed_wallet_address?: string | null
           updated_at?: string
           user_id: string
           wallet_address?: string | null
@@ -633,9 +653,31 @@ export type Database = {
           display_name?: string | null
           email?: string
           id?: string
+          managed_wallet_address?: string | null
           updated_at?: string
           user_id?: string
           wallet_address?: string | null
+        }
+        Relationships: []
+      }
+      managed_wallets: {
+        Row: {
+          address: string
+          created_at: string
+          encrypted_secret: string
+          user_id: string
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          encrypted_secret: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          encrypted_secret?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -812,8 +854,12 @@ export type Database = {
     Views: {
       certificates_public: {
         Row: {
+          asset_id: string | null
           created_at: string | null
           grader: string | null
+          image_uri: string | null
+          metadata_uri: string | null
+          mint_status: string | null
           grader_card_snapshot: Json | null
           grader_cert_number: string | null
           grader_grade: string | null
@@ -840,8 +886,12 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          asset_id?: string | null
           created_at?: string | null
           grader?: string | null
+          image_uri?: string | null
+          metadata_uri?: string | null
+          mint_status?: string | null
           grader_card_snapshot?: Json | null
           grader_cert_number?: string | null
           grader_grade?: string | null
@@ -868,8 +918,12 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          asset_id?: string | null
           created_at?: string | null
           grader?: string | null
+          image_uri?: string | null
+          metadata_uri?: string | null
+          mint_status?: string | null
           grader_card_snapshot?: Json | null
           grader_cert_number?: string | null
           grader_grade?: string | null
@@ -929,6 +983,19 @@ export type Database = {
           p_description?: string
           p_payment_id?: string
           p_payment_method: Database["public"]["Enums"]["payment_method"]
+          p_user_id: string
+        }
+        Returns: {
+          message: string
+          new_balance: number
+          success: boolean
+        }[]
+      }
+      refund_credits: {
+        Args: {
+          p_amount: number
+          p_description?: string
+          p_reference_id?: string
           p_user_id: string
         }
         Returns: {

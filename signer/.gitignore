@@ -1,0 +1,6 @@
+node_modules/
+.env
+.env.local
+*.log
+platform-keypair.json
+dist/

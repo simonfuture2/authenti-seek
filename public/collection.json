@@ -1,0 +1,16 @@
+{
+  "name": "AuthentiSeal Certificates",
+  "symbol": "ASEAL",
+  "description": "Permanent certificates of authenticity sealed with AuthentiSeal. Each sealed item is a compressed NFT minted to the collector's managed wallet, with metadata and imagery stored permanently on Arweave.",
+  "image": "https://authenti-seek.lovable.app/dapp-store/icon-512.png",
+  "external_url": "https://authenti-seek.lovable.app",
+  "properties": {
+    "category": "image",
+    "files": [
+      {
+        "uri": "https://authenti-seek.lovable.app/dapp-store/icon-512.png",
+        "type": "image/png"
+      }
+    ]
+  }
+}
