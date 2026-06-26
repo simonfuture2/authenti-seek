@@ -71,8 +71,19 @@ app.post("/mint", async (req, reply) => {
     },
   }).sendAndConfirm(umi);
 
-  // 4. Derive the asset id from the minted leaf.
-  const leaf = await parseLeafFromMintV2Transaction(umi, signature);
+  // 4. Derive the asset id from the minted leaf. The mint is confirmed, but the RPC may
+  //    not serve the transaction back immediately — retry the fetch until it's queryable.
+  let leaf;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      leaf = await parseLeafFromMintV2Transaction(umi, signature);
+      break;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (attempt >= 12 || !/Could not get transaction/i.test(msg)) throw e;
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+  }
 
   return {
     assetId: leaf.id,

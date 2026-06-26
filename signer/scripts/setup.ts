@@ -38,6 +38,9 @@ await createCollection(umi, {
   name: "AuthentiSeal Certificates",
   uri: COLLECTION_METADATA_URI,
   plugins: [
+    // REQUIRED for minting cNFTs into this core collection via Bubblegum v2.
+    { type: "BubblegumV2" },
+    // Lets the platform move cNFTs on a holder's behalf (Phase 4 invisible transfer).
     { type: "PermanentTransferDelegate", authority: { type: "UpdateAuthority" } },
     // Optional soulbound-until-sanctioned-transfer (platform can still move via the
     // transfer delegate above). Uncomment to freeze holder-initiated transfers:
@@ -45,15 +48,25 @@ await createCollection(umi, {
   ],
 }).sendAndConfirm(umi);
 
-const merkleTree = generateSigner(umi);
-// createTreeV2 is async (it sizes the tree account on chain) — await before sending.
-const treeBuilder = await createTreeV2(umi, {
-  merkleTree,
-  maxDepth: 20,
-  maxBufferSize: 64,
-});
-await treeBuilder.sendAndConfirm(umi);
+// Reuse an existing tree if one is already provisioned (avoids paying tree rent again).
+let treeAddress = process.env.BUBBLEGUM_TREE_ADDRESS;
+if (treeAddress) {
+  console.log("Reusing existing BUBBLEGUM_TREE_ADDRESS=" + treeAddress);
+} else {
+  const merkleTree = generateSigner(umi);
+  // createTreeV2 is async (it sizes the tree account on chain) — await before sending.
+  // Bubblegum v2 requires a canopy; depth 14 + canopy 11 ≈ 16k cNFTs with a 3-node proof
+  // (cheap rent, fully composable). Bump maxDepth/canopy later for higher capacity.
+  const treeBuilder = await createTreeV2(umi, {
+    merkleTree,
+    maxDepth: 14,
+    maxBufferSize: 64,
+    canopyDepth: 11,
+  });
+  await treeBuilder.sendAndConfirm(umi);
+  treeAddress = merkleTree.publicKey;
+}
 
 console.log("\n--- paste these into the signer env ---");
 console.log("CORE_COLLECTION_ADDRESS=" + collection.publicKey);
-console.log("BUBBLEGUM_TREE_ADDRESS=" + merkleTree.publicKey);
+console.log("BUBBLEGUM_TREE_ADDRESS=" + treeAddress);
