@@ -302,6 +302,9 @@ export type Database = {
           mint_error: string | null
           mint_status: Database["public"]["Enums"]["mint_status"]
           minted_at: string | null
+          nft_asset_id: string | null
+          nft_image_uri: string | null
+          nft_metadata_uri: string | null
           physical_attributes: Json
           product_category: string | null
           product_description: string | null
@@ -340,6 +343,9 @@ export type Database = {
           mint_error?: string | null
           mint_status?: Database["public"]["Enums"]["mint_status"]
           minted_at?: string | null
+          nft_asset_id?: string | null
+          nft_image_uri?: string | null
+          nft_metadata_uri?: string | null
           physical_attributes?: Json
           product_category?: string | null
           product_description?: string | null
@@ -378,6 +384,9 @@ export type Database = {
           mint_error?: string | null
           mint_status?: Database["public"]["Enums"]["mint_status"]
           minted_at?: string | null
+          nft_asset_id?: string | null
+          nft_image_uri?: string | null
+          nft_metadata_uri?: string | null
           physical_attributes?: Json
           product_category?: string | null
           product_description?: string | null
@@ -656,6 +665,7 @@ export type Database = {
           display_name: string | null
           email: string
           id: string
+          managed_wallet_address: string | null
           updated_at: string
           user_id: string
           wallet_address: string | null
@@ -667,6 +677,7 @@ export type Database = {
           display_name?: string | null
           email: string
           id?: string
+          managed_wallet_address?: string | null
           updated_at?: string
           user_id: string
           wallet_address?: string | null
@@ -678,6 +689,7 @@ export type Database = {
           display_name?: string | null
           email?: string
           id?: string
+          managed_wallet_address?: string | null
           updated_at?: string
           user_id?: string
           wallet_address?: string | null
